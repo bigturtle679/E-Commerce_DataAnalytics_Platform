@@ -1,0 +1,89 @@
+version: 2
+
+models:
+  # --- Batch staging models ---
+  - name: stg_orders_batch
+    description: Cleaned and deduplicated Olist orders
+    columns:
+      - name: order_id
+        tests: [not_null, unique]
+      - name: customer_id
+        tests: [not_null]
+      - name: order_status
+        tests:
+          - accepted_values:
+              values: ['delivered', 'shipped', 'canceled', 'unavailable',
+                       'invoiced', 'processing', 'created', 'approved', 'unknown']
+
+  - name: stg_order_items_batch
+    description: Cleaned order line items
+    columns:
+      - name: order_id
+        tests: [not_null]
+      - name: product_id
+        tests: [not_null]
+      - name: price
+        tests: [not_null]
+
+  - name: stg_customers_batch
+    description: Cleaned Olist customers
+    columns:
+      - name: customer_id
+        tests: [not_null, unique]
+      - name: customer_unique_id
+        tests: [not_null]
+
+  - name: stg_products_batch
+    description: Cleaned products with English category names
+    columns:
+      - name: product_id
+        tests: [not_null, unique]
+
+  - name: stg_sellers_batch
+    description: Cleaned Olist sellers
+    columns:
+      - name: seller_id
+        tests: [not_null, unique]
+
+  - name: stg_payments_batch
+    description: Cleaned order payments
+    columns:
+      - name: order_id
+        tests: [not_null]
+      - name: payment_type
+        tests:
+          - accepted_values:
+              values: ['credit_card', 'boleto', 'voucher', 'debit_card', 'not_defined', 'unknown']
+
+  - name: stg_reviews_batch
+    description: Cleaned order reviews
+    columns:
+      - name: review_id
+        tests: [not_null, unique]
+      - name: review_score
+        tests:
+          - accepted_values:
+              values: [1, 2, 3, 4, 5, 0]
+
+  # --- API staging models ---
+  - name: stg_products_api
+    description: Cleaned FakeStore products
+    columns:
+      - name: product_id
+        tests: [not_null, unique]
+
+  - name: stg_users_api
+    description: Cleaned FakeStore users
+    columns:
+      - name: user_id
+        tests: [not_null, unique]
+      - name: email
+        tests: [not_null]
+
+  - name: stg_carts_api
+    description: Flattened FakeStore carts (one row per cart-product)
+    columns:
+      - name: cart_id
+        tests: [not_null]
+      - name: product_id
+        tests: [not_null]

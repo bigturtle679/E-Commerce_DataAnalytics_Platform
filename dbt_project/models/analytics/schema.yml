@@ -1,0 +1,64 @@
+version: 2
+
+models:
+  - name: dim_customers
+    description: Customer dimension — merged from Olist batch + FakeStore API. SCD2-ready.
+    columns:
+      - name: customer_key
+        tests: [not_null, unique]
+      - name: customer_id
+        tests: [not_null]
+      - name: is_current
+        tests: [not_null]
+
+  - name: dim_products
+    description: Product dimension — merged from Olist batch + FakeStore API. SCD2-ready.
+    columns:
+      - name: product_key
+        tests: [not_null, unique]
+      - name: product_id
+        tests: [not_null]
+      - name: is_current
+        tests: [not_null]
+
+  - name: dim_sellers
+    description: Seller dimension — Olist batch only. SCD2-ready.
+    columns:
+      - name: seller_key
+        tests: [not_null, unique]
+      - name: seller_id
+        tests: [not_null]
+
+  - name: dim_dates
+    description: Date dimension — generated spine 2016-2019.
+    columns:
+      - name: date_key
+        tests: [not_null, unique]
+      - name: full_date
+        tests: [not_null, unique]
+
+  - name: fact_order_items
+    description: Fact table — one row per order line item. Incremental.
+    columns:
+      - name: order_item_key
+        tests: [not_null, unique]
+      - name: customer_key
+        tests: [not_null]
+      - name: product_key
+        tests: [not_null]
+      - name: seller_key
+        tests: [not_null]
+      - name: order_date_key
+        tests: [not_null]
+      - name: price
+        tests: [not_null]
+
+  - name: fact_order_payments
+    description: Fact table — one row per payment entry. Incremental.
+    columns:
+      - name: payment_key
+        tests: [not_null, unique]
+      - name: customer_key
+        tests: [not_null]
+      - name: payment_value
+        tests: [not_null]

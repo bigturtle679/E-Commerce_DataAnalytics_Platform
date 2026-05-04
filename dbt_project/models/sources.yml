@@ -1,0 +1,30 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: orders
+        identifier: orders
+      - name: order_items
+        identifier: order_items
+      - name: customers
+        identifier: customers
+      - name: products
+        identifier: products
+      - name: sellers
+        identifier: sellers
+      - name: order_payments
+        identifier: order_payments
+      - name: order_reviews
+        identifier: order_reviews
+      - name: geolocation
+        identifier: geolocation
+      - name: product_category_translation
+        identifier: product_category_translation
+      - name: api_products
+        identifier: api_products
+      - name: api_users
+        identifier: api_users
+      - name: api_carts
+        identifier: api_carts
