@@ -1,4 +1,7 @@
-"""API ingestion pipeline — fetches from FakeStore API and loads into raw.api_* tables."""
+"""API ingestion pipeline — fetches from FakeStore API and loads into raw.api_* tables.
+
+Emits pipeline metrics for observability.
+"""
 
 import json
 import uuid
@@ -9,6 +12,7 @@ from config.settings import RAW_SCHEMA
 from ingestion.api.fakestore_client import FakeStoreClient
 from ingestion.utils.db import ensure_schemas, save_api_sync_state, upsert_dataframe
 from ingestion.utils.logger import get_logger
+from ingestion.utils.metrics import track_pipeline
 
 logger = get_logger("api_ingest")
 
@@ -105,13 +109,16 @@ def run_api_ingestion() -> dict[str, int]:
         ("api_users", ingest_users),
         ("api_carts", ingest_carts),
     ]:
-        try:
-            count = func(client)
-            results[name] = count
-            logger.info(f"✓ {name}: {count} rows")
-        except Exception as e:
-            logger.error(f"✗ {name}: {e}", exc_info=True)
-            results[name] = -1
+        with track_pipeline("api_ingestion", name) as ctx:
+            try:
+                count = func(client)
+                ctx["rows_processed"] = count
+                results[name] = count
+                logger.info(f"✓ {name}: {count} rows")
+            except Exception as e:
+                logger.error(f"✗ {name}: {e}", exc_info=True)
+                results[name] = -1
+                raise  # re-raise so track_pipeline records failure
 
     logger.info(f"API ingestion complete: {results}")
     return results

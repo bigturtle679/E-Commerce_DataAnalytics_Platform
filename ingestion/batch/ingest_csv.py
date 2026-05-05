@@ -2,6 +2,7 @@
 
 Reads CSVs with enforced dtypes, validates schemas, and upserts into raw.* tables.
 Tracks ingested files via checksum to support incremental processing.
+Emits pipeline metrics for observability.
 """
 
 import uuid
@@ -24,6 +25,7 @@ from ingestion.utils.db import (
     upsert_dataframe,
 )
 from ingestion.utils.logger import get_logger
+from ingestion.utils.metrics import track_pipeline
 
 logger = get_logger("batch_ingest")
 
@@ -87,14 +89,19 @@ def run_batch_ingestion() -> dict[str, int]:
     logger.info(f"Starting batch ingestion — batch_id={batch_id}")
 
     results = {}
+    total_rows = 0
     for table_name in CSV_FILE_MAP:
-        try:
-            count = ingest_table(table_name, batch_id)
-            results[table_name] = count
-            logger.info(f"✓ {table_name}: {count} rows")
-        except Exception as e:
-            logger.error(f"✗ {table_name}: {e}", exc_info=True)
-            results[table_name] = -1
+        with track_pipeline("batch_ingestion", table_name) as ctx:
+            try:
+                count = ingest_table(table_name, batch_id)
+                ctx["rows_processed"] = count
+                results[table_name] = count
+                total_rows += count
+                logger.info(f"✓ {table_name}: {count} rows")
+            except Exception as e:
+                logger.error(f"✗ {table_name}: {e}", exc_info=True)
+                results[table_name] = -1
+                raise  # re-raise so track_pipeline records failure
 
     logger.info(f"Batch ingestion complete: {results}")
     return results

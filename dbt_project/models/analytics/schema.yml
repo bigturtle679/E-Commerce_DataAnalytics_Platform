@@ -5,60 +5,169 @@ models:
     description: Customer dimension — merged from Olist batch + FakeStore API. SCD2-ready.
     columns:
       - name: customer_key
-        tests: [not_null, unique]
+        description: Surrogate key for customer dimension
+        tests:
+          - not_null
+          - unique
       - name: customer_id
-        tests: [not_null]
+        description: Natural key from source systems
+        tests:
+          - not_null
       - name: is_current
-        tests: [not_null]
+        tests:
+          - not_null
+          - accepted_values:
+              values: [true, false]
+      - name: source
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['olist_batch', 'fakestore_api']
 
   - name: dim_products
     description: Product dimension — merged from Olist batch + FakeStore API. SCD2-ready.
     columns:
       - name: product_key
-        tests: [not_null, unique]
+        description: Surrogate key for product dimension
+        tests:
+          - not_null
+          - unique
       - name: product_id
-        tests: [not_null]
+        description: Natural key from source systems
+        tests:
+          - not_null
       - name: is_current
-        tests: [not_null]
+        tests:
+          - not_null
+      - name: source
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['olist_batch', 'fakestore_api']
 
   - name: dim_sellers
     description: Seller dimension — Olist batch only. SCD2-ready.
     columns:
       - name: seller_key
-        tests: [not_null, unique]
+        description: Surrogate key for seller dimension
+        tests:
+          - not_null
+          - unique
       - name: seller_id
-        tests: [not_null]
+        description: Natural key from source
+        tests:
+          - not_null
+          - unique
 
   - name: dim_dates
     description: Date dimension — generated spine 2016-2019.
     columns:
       - name: date_key
-        tests: [not_null, unique]
+        tests:
+          - not_null
+          - unique
       - name: full_date
-        tests: [not_null, unique]
+        tests:
+          - not_null
+          - unique
+      - name: year
+        tests:
+          - not_null
+      - name: month
+        tests:
+          - not_null
 
   - name: fact_order_items
     description: Fact table — one row per order line item. Incremental.
     columns:
       - name: order_item_key
-        tests: [not_null, unique]
+        description: Surrogate key (md5 of order_id + order_item_id)
+        tests:
+          - not_null
+          - unique
       - name: customer_key
-        tests: [not_null]
+        description: FK to dim_customers
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_customers')
+              field: customer_key
+              config:
+                where: "customer_key != -1"
       - name: product_key
-        tests: [not_null]
+        description: FK to dim_products
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_products')
+              field: product_key
+              config:
+                where: "product_key != -1"
       - name: seller_key
-        tests: [not_null]
+        description: FK to dim_sellers
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_sellers')
+              field: seller_key
+              config:
+                where: "seller_key != -1"
       - name: order_date_key
-        tests: [not_null]
+        description: FK to dim_dates
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_dates')
+              field: date_key
+              config:
+                where: "order_date_key != -1"
       - name: price
-        tests: [not_null]
+        tests:
+          - not_null
+      - name: freight_value
+        tests:
+          - not_null
+      - name: total_amount
+        tests:
+          - not_null
+      - name: order_id
+        tests:
+          - not_null
 
   - name: fact_order_payments
     description: Fact table — one row per payment entry. Incremental.
     columns:
       - name: payment_key
-        tests: [not_null, unique]
+        description: Surrogate key (md5 of order_id + payment_sequential)
+        tests:
+          - not_null
+          - unique
       - name: customer_key
-        tests: [not_null]
+        description: FK to dim_customers
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_customers')
+              field: customer_key
+              config:
+                where: "customer_key != -1"
+      - name: order_date_key
+        description: FK to dim_dates
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_dates')
+              field: date_key
+              config:
+                where: "order_date_key != -1"
       - name: payment_value
-        tests: [not_null]
+        tests:
+          - not_null
+      - name: payment_type
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['credit_card', 'boleto', 'voucher', 'debit_card', 'not_defined', 'unknown']
+      - name: order_id
+        tests:
+          - not_null

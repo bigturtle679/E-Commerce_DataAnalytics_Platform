@@ -2,6 +2,7 @@
 
 Idempotent DAG with clear task separation:
   create_schemas → [batch_ingest, api_ingest_*] → dbt_staging → dbt_analytics → dbt_test
+  → create_indexes → dbt_source_freshness
 """
 
 import os
@@ -33,7 +34,7 @@ default_args = {
 dag = DAG(
     dag_id="ecommerce_data_pipeline",
     default_args=default_args,
-    description="End-to-end e-commerce data pipeline: ingest → transform → test",
+    description="End-to-end e-commerce data pipeline: ingest → transform → test → optimize",
     schedule_interval="@daily",
     start_date=datetime(2024, 1, 1),
     catchup=False,
@@ -68,6 +69,11 @@ def _ingest_api_carts():
     from ingestion.api.fakestore_client import FakeStoreClient
     from ingestion.api.ingest_api import ingest_carts
     ingest_carts(FakeStoreClient())
+
+
+def _create_indexes():
+    from ingestion.utils.performance import create_indexes
+    create_indexes()
 
 
 # --- Task definitions ---
@@ -129,7 +135,30 @@ dbt_test = BashOperator(
     dag=dag,
 )
 
+create_indexes = PythonOperator(
+    task_id="create_indexes",
+    python_callable=_create_indexes,
+    dag=dag,
+)
+
+dbt_source_freshness = BashOperator(
+    task_id="dbt_source_freshness",
+    bash_command=(
+        f"cd {DBT_PROJECT_DIR} && "
+        f"dbt source freshness --profiles-dir {DBT_PROFILES_DIR}"
+    ),
+    dag=dag,
+)
+
 # --- Dependencies ---
+# Phase 1: Schema creation
 create_schemas >> [ingest_batch, ingest_api_products, ingest_api_users, ingest_api_carts]
+
+# Phase 2: Ingestion (parallel batch + API)
 [ingest_batch, ingest_api_products, ingest_api_users, ingest_api_carts] >> dbt_run_staging
+
+# Phase 3: dbt transformations
 dbt_run_staging >> dbt_run_analytics >> dbt_test
+
+# Phase 4: Post-transform optimization + freshness check
+dbt_test >> [create_indexes, dbt_source_freshness]
