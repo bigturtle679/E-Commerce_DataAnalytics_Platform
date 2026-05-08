@@ -1,6 +1,6 @@
 # Progress Tracker
 
-> Last updated: 2026-05-05
+> Last updated: 2026-05-08
 
 ## Completed Components
 
@@ -56,6 +56,8 @@
   - Tracks: rows_processed, duration_sec, status (success/failure), error_message
   - Stored in `raw._pipeline_metrics` table (queryable)
   - Integrated into both batch and API ingestion pipelines
+  - `observability/sql/create_views.sql` — SQL views for API consumption
+  - `observability/setup.py` — idempotent view creation
 - **Performance Optimization**:
   - `ingestion/utils/performance.py` — idempotent index creation
   - Indexes on: FK columns, timestamps (_loaded_at), natural keys, is_current, payment_type
@@ -65,6 +67,24 @@
   - README expanded with: architecture diagram, design decisions with trade-offs,
     observability guide, data quality details, performance strategy, scaling path,
     failure handling, and full DAG flow
+
+### Phase 8: Frontend Platform ✅
+- **FastAPI Backend** (`api/`):
+  - Read-only API with 4 routers: pipeline, health, analytics, quality
+  - Service layer: `database.py` with psycopg2 connection pool
+  - Typed Pydantic schemas for all responses
+  - Pre-aggregated SQL for analytics (no client-side computation)
+  - CORS configured for frontend
+  - Endpoints: 14 total across 4 routers
+- **Next.js Frontend** (`frontend/`):
+  - Next.js 16 with App Router, TypeScript, TailwindCSS v4
+  - shadcn/ui components (card, badge, table, tabs, separator, skeleton)
+  - Recharts for all visualizations
+  - React Query with 30s stale time, 60s polling
+  - Dark mode default with toggle
+  - 4 pages: Overview, Pipeline, Analytics, Quality
+  - Environment-driven API base URL
+  - Zero TypeScript errors in production build
 
 ## Architecture State
 
@@ -84,6 +104,18 @@
                                               ├── dbt test (RI + schema + freshness)
                                               ├── Index creation (FK, timestamp, natural key)
                                               └── Source freshness validation
+                                                              │
+                                              FastAPI (read-only)
+                                              ├── /api/pipeline/* — runs, stats, timeline
+                                              ├── /api/health/* — status, freshness, ping
+                                              ├── /api/analytics/* — revenue, products, customers, orders, geo
+                                              └── /api/quality/* — row-counts, summary, freshness
+                                                              │
+                                              Next.js Dashboard
+                                              ├── / — Overview (health cards, revenue chart, recent runs)
+                                              ├── /pipeline — Monitoring (duration, throughput, run history)
+                                              ├── /analytics — Business metrics (revenue, orders, customers, geo)
+                                              └── /quality — Data quality (freshness, row counts, inventory)
 ```
 
 ## Database Schema Summary
@@ -93,11 +125,57 @@
 | `raw` | 12 data tables + 3 meta tables | Raw ingested data + tracking + metrics |
 | `staging` | 10 views | Cleaned, typed, deduplicated |
 | `analytics` | 6 tables | Star schema (4 dims + 2 facts) |
+| `observability` | 4 views | Pre-aggregated views for API consumption |
 
 ### Raw Tables
 - `orders`, `order_items`, `customers`, `products`, `sellers`, `order_payments`, `order_reviews`, `geolocation`, `product_category_translation`
 - `api_products`, `api_users`, `api_carts`
 - `_ingestion_log` (file tracking), `_api_sync_state` (endpoint tracking), `_pipeline_metrics` (observability)
+
+## API Contracts
+
+### Pipeline Router (`/api/pipeline`)
+| Method | Endpoint | Response | Description |
+|--------|----------|----------|-------------|
+| GET | `/runs?limit=50&status=` | `PipelineRun[]` | Recent pipeline runs |
+| GET | `/stats` | `TaskStats[]` | Per-task aggregated statistics |
+| GET | `/timeline?days=7` | `ThroughputPoint[]` | Hourly throughput |
+
+### Health Router (`/api/health`)
+| Method | Endpoint | Response | Description |
+|--------|----------|----------|-------------|
+| GET | `/status` | `SystemHealth[]` | Per-pipeline health overview |
+| GET | `/freshness` | `FreshnessIndicator[]` | Per-source freshness |
+| GET | `/ping` | `{status, db}` | Connectivity check |
+
+### Analytics Router (`/api/analytics`)
+| Method | Endpoint | Response | Description |
+|--------|----------|----------|-------------|
+| GET | `/revenue?months=24` | `RevenueDataPoint[]` | Monthly revenue trends |
+| GET | `/top-products?limit=10` | `TopProduct[]` | Top products by revenue |
+| GET | `/customers?months=24` | `CustomerTrend[]` | Customer growth trends |
+| GET | `/orders?months=24` | `OrderGrowth[]` | Order volume + AOV |
+| GET | `/geo?limit=20` | `GeoDistribution[]` | Geographic distribution |
+
+### Quality Router (`/api/quality`)
+| Method | Endpoint | Response | Description |
+|--------|----------|----------|-------------|
+| GET | `/row-counts` | `TableRowCount[]` | Row counts per table |
+| GET | `/summary` | `QualitySummary` | Overall quality summary |
+| GET | `/freshness` | `FreshnessDetail[]` | Per-source freshness status |
+
+## Frontend Architecture Decisions
+
+1. **App Router only** — no Pages Router; all routes under `app/`
+2. **Client components only when needed** — pages use `"use client"` for React Query hooks; layout is server component
+3. **React Query as sole state** — no Redux/Zustand; query cache is the data store
+4. **Pre-aggregated SQL** — all analytics computed server-side; frontend receives final data
+5. **Polling over websockets** — 60s refetch interval via React Query; simpler, more reliable
+6. **Dark mode default** — localStorage-persisted toggle; `class="dark"` on html element
+7. **shadcn/ui base** — Card, Badge, Table, Tabs, Skeleton for consistent UI primitives
+8. **Recharts** — AreaChart, BarChart, PieChart with CSS variable colors for theme awareness
+9. **Typed everything** — TypeScript interfaces mirror Pydantic schemas exactly
+10. **Environment-driven config** — `NEXT_PUBLIC_API_URL` for API base; no hardcoded URLs
 
 ## Pipeline Flow
 
@@ -124,18 +202,50 @@
 7. **Coalesce to -1** — missing dimension keys use sentinel value; RI tests exclude with WHERE
 8. **Observable by default** — every ingestion task emits timing + row count metrics
 9. **Indexes as code** — performance optimization is version-controlled and idempotent
+10. **Read-only API** — backend only exposes GET endpoints; zero write access from frontend
+11. **Service layer pattern** — database.py separates routers from SQL execution
 
-## Pending Tasks
+### Phase 8.1: Integration & Data Population ✅
+- **Ingestion Fixes**:
+  - Fixed upsert: added UNIQUE constraint after table creation (pandas `to_sql` doesn't create PK/UQ)
+  - Fixed NaT handling: convert pandas NaT values to None before PostgreSQL INSERT
+- **dbt Workaround**:
+  - dbt CLI incompatible with Python 3.14 (mashumaro/dataclass_schema issue)
+  - Created `scripts/materialize_models.py` — direct SQL materialization matching dbt model logic
+  - Added `dbt_project/macros/generate_schema_name.sql` — schema name override (prevents `public_analytics` naming)
+- **API Error Handling**:
+  - `database.py` rewritten with try/except for UndefinedTable, UndefinedColumn, InvalidSchemaName
+  - All queries return empty list on error (no 500 crashes)
+  - `ensure_metrics_table()` called on API startup — creates `raw._pipeline_metrics` if missing
+- **Query Alignment**:
+  - Fixed `analytics.py` — `product_name` → `NULLIF(title, '')` (dim_products has `title` not `product_name`)
+- **End-to-End Verified**:
+  - All 14 API endpoints return HTTP 200 with real data
+  - All 4 frontend pages render with production data (charts, tables, metrics)
 
-- None — all 7 phases complete
+## Data Population Summary
 
-## Assumptions
-
-1. PostgreSQL accessible at localhost:5432 with database `ecommerce`
-2. Python 3.10+ installed
-3. Olist CSVs in `../dataset/` relative to project root
-4. FakeStore API available at https://fakestoreapi.com
-5. Airflow uses SequentialExecutor for local dev
+| Schema | Table | Rows |
+|--------|-------|------|
+| raw | orders | 99,441 |
+| raw | order_items | 112,650 |
+| raw | customers | 99,441 |
+| raw | products | 32,951 |
+| raw | sellers | 3,095 |
+| raw | order_payments | 103,886 |
+| raw | order_reviews | 98,410 |
+| raw | geolocation | 1,000,163 |
+| raw | api_products | 20 |
+| raw | api_users | 10 |
+| raw | api_carts | 7 |
+| raw | _pipeline_metrics | 12 |
+| staging | 10 views | — |
+| analytics | dim_customers | 99,451 |
+| analytics | dim_products | 32,971 |
+| analytics | dim_sellers | 3,095 |
+| analytics | dim_dates | 1,461 |
+| analytics | fact_order_items | 112,650 |
+| analytics | fact_order_payments | 103,886 |
 
 ## How to Resume
 
@@ -143,6 +253,19 @@
 2. Check `.env` for config
 3. Check `config/settings.py` for all settings
 4. Run `python -m pytest tests/test_ingestion.py -v` to verify setup
-5. Run `python -m ingestion.batch.ingest_csv` to test batch pipeline
-6. Run `python -m ingestion.api.ingest_api` to test API pipeline
-7. Run `python -m ingestion.utils.performance` to create indexes
+5. Populate data (if empty DB):
+   ```bash
+   python -m ingestion.batch.ingest_csv     # Load 9 Olist CSVs → raw.*
+   python -m ingestion.api.ingest_api       # Fetch FakeStore API → raw.api_*
+   python -m scripts.materialize_models     # Create staging views + analytics tables
+   python -m ingestion.utils.performance    # Create indexes
+   ```
+6. Start full stack:
+   ```bash
+   # Terminal 1: API
+   uvicorn api.main:app --reload
+   # Terminal 2: Frontend
+   cd frontend && npm run dev
+   ```
+7. Open http://localhost:3000 for the dashboard
+

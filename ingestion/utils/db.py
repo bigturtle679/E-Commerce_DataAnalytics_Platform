@@ -58,6 +58,15 @@ def upsert_dataframe(
 
     if not table_exists:
         df.head(0).to_sql(table_name, engine, schema=schema, index=False)
+        # Add unique constraint for upsert conflict resolution
+        if conflict_columns:
+            constraint_name = f"uq_{table_name}_{'_'.join(conflict_columns)}"
+            col_list = ", ".join(f'"{c}"' for c in conflict_columns)
+            with engine.begin() as conn:
+                conn.execute(text(
+                    f'ALTER TABLE {full_table} ADD CONSTRAINT "{constraint_name}" '
+                    f'UNIQUE ({col_list})'
+                ))
         logger.info(f"Created table {full_table}")
 
     if not conflict_columns:
@@ -82,6 +91,10 @@ def upsert_dataframe(
     records = df.to_dict(orient="records")
     with engine.begin() as conn:
         for record in records:
+            # Convert pandas NaT/NaN to None for PostgreSQL compatibility
+            for k, v in record.items():
+                if pd.isna(v):
+                    record[k] = None
             conn.execute(upsert_sql, record)
 
     logger.info(f"Upserted {len(records)} rows into {full_table}")

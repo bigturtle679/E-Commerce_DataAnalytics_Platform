@@ -1,146 +1,203 @@
-# Multi-Source E-commerce Data Platform
+# 🛒 E-Commerce Data Analytics Platform
 
-Production-grade data platform ingesting e-commerce data from batch CSVs (Brazilian Olist dataset) and a live API (FakeStore), transforming via dbt into a star schema, orchestrated by Airflow.
+A production-grade, end-to-end data platform that ingests e-commerce data from multiple sources, transforms it into a star schema warehouse, and surfaces insights through a real-time observability dashboard.
 
-## Architecture
+> **Data Sources**: Brazilian Olist marketplace dataset (9 CSVs, ~1.5M rows) + FakeStore REST API (3 endpoints)  
+> **Stack**: Python · PostgreSQL · dbt · Airflow · FastAPI · Next.js
+
+---
+
+## 📸 Dashboard Preview
+
+The platform includes a full-stack observability and analytics dashboard with 4 pages:
+
+| Page | What It Shows |
+|------|--------------|
+| **Overview** | System health summary — pipeline runs, rows processed, avg duration, source freshness, revenue trend |
+| **Pipeline** | DAG monitoring — success rate, task durations, throughput timeline, run history with status badges |
+| **Analytics** | Business metrics — R$15.8M total revenue, 98.7K customers, order trends, geographic distribution |
+| **Data Quality** | Freshness indicators, row counts by table, stale source detection, data inventory |
+
+---
+
+## 🏗️ Architecture
 
 ```
-                  ┌─────────────────┐      ┌─────────────────────────────┐
-                  │  Olist CSVs (9) │      │  FakeStore API (3 endpoints)│
-                  └────────┬────────┘      └────────────┬────────────────┘
-                           │                            │
-                   dtype-enforced                  retry + backoff
-                   MD5 checksum                    sync state tracking
-                           │                            │
-                           ▼                            ▼
-              ┌──────────────────────────────────────────────┐
-              │        PostgreSQL — raw schema (12 tables)   │
-              │   orders, order_items, customers, products,  │
-              │   sellers, payments, reviews, geolocation,   │
-              │   category_translation, api_products,        │
-              │   api_users, api_carts                       │
-              │   + _ingestion_log, _api_sync_state,         │
-              │     _pipeline_metrics                        │
-              └──────────────────┬───────────────────────────┘
-                                 │
-                          dbt staging (10 views)
-                    ┌────────────┴────────────┐
-                    │ batch/ (7)    api/ (3)   │
-                    │ stg_*_batch   stg_*_api  │
-                    └────────────┬─────────────┘
-                                 │
-                          dbt analytics (6 tables)
-                    ┌────────────┴────────────────┐
-                    │ Dimensions         Facts     │
-                    │ dim_customers   fact_order_*  │
-                    │ dim_products    (incremental) │
-                    │ dim_sellers                   │
-                    │ dim_dates                     │
-                    └──────────────────────────────┘
-                                 │
-                    ┌────────────┴───────────┐
-                    │   Post-Transform       │
-                    │   - dbt test           │
-                    │   - Index creation     │
-                    │   - Source freshness   │
-                    └────────────────────────┘
-                                 │
-                          Airflow DAG
-                    (daily, idempotent, 10 tasks)
+ ┌──────────────────┐     ┌───────────────────────┐
+ │  Olist CSVs (9)  │     │ FakeStore API (3 endpoints) │
+ │  dtype-enforced  │     │  retry + backoff      │
+ │  MD5 checksums   │     │  sync state tracking  │
+ └────────┬─────────┘     └───────────┬───────────┘
+          │                           │
+          ▼                           ▼
+ ┌──────────────────────────────────────────────┐
+ │     PostgreSQL — raw schema (15 tables)      │
+ │  9 batch tables + 3 API tables + 3 meta      │
+ └──────────────────────┬───────────────────────┘
+                        │
+                 Staging Layer (10 views)
+                 ├── 7 batch models (stg_*_batch)
+                 └── 3 API models   (stg_*_api)
+                        │
+                 Analytics Layer (6 tables)
+                 ├── dim_customers  ─┐
+                 ├── dim_products   ─┼── Star Schema
+                 ├── dim_sellers    ─┤
+                 ├── dim_dates      ─┘
+                 ├── fact_order_items
+                 └── fact_order_payments
+                        │
+          ┌─────────────┴──────────────┐
+          │    FastAPI (read-only)      │
+          │    14 endpoints, 4 routers  │
+          └─────────────┬──────────────┘
+                        │
+          ┌─────────────┴──────────────┐
+          │    Next.js Dashboard        │
+          │    4 pages, dark mode       │
+          │    Recharts + shadcn/ui     │
+          └────────────────────────────┘
 ```
 
-## Tech Stack
+---
 
-| Component | Technology | Purpose |
-|-----------|------------|---------|
-| Language | Python 3.10+ | Ingestion, orchestration glue |
-| Warehouse | PostgreSQL | OLAP storage, raw + star schema |
-| Transformations | dbt-core 1.8 (postgres adapter) | SQL-based ELT modeling |
-| Orchestration | Apache Airflow 2.9 | DAG scheduling, task dependencies |
-| Libraries | pandas, sqlalchemy, psycopg2, requests | Data manipulation, DB access, HTTP |
+## ⚙️ Tech Stack
 
-## Quick Start
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
+| **Ingestion** | Python, pandas, requests | Batch CSV loading + REST API fetching |
+| **Warehouse** | PostgreSQL | Raw → Staging → Analytics (star schema) |
+| **Modeling** | dbt-core | SQL-based ELT with tests and freshness |
+| **Orchestration** | Apache Airflow | 10-task DAG, daily schedule, idempotent |
+| **Observability** | Custom metrics table | Pipeline timing, row counts, failure tracking |
+| **API** | FastAPI + psycopg2 | Read-only REST layer with connection pooling |
+| **Frontend** | Next.js 16, TypeScript | App Router, server components |
+| **UI** | TailwindCSS v4, shadcn/ui | Dark-mode-first design system |
+| **Charts** | Recharts | Area, bar, and pie visualizations |
+| **State** | React Query (TanStack) | Client-side caching with 60s polling |
+
+---
+
+## 🚀 Quick Start
 
 ### Prerequisites
-- Python 3.10+
-- PostgreSQL running on localhost:5432
-- Database `ecommerce` created
 
-### Setup
+- **Python 3.10+**
+- **Node.js 18+**
+- **PostgreSQL** running on `localhost:5432`
+- A database named `ecommerce` created
+
+### 1. Clone & Install
+
 ```bash
-cd ecommerce-data-platform
+git clone https://github.com/bigturtle679/E-Commerce_DataAnalytics_Platform.git
+cd E-Commerce_DataAnalytics_Platform
+
+# Python dependencies
 pip install -r requirements.txt
+
+# Frontend dependencies
+cd frontend && npm install && cd ..
 ```
 
-### Configure
-Edit `.env` with your PostgreSQL credentials.
+### 2. Configure Environment
 
-### Run Manually
 ```bash
-# Batch ingestion
+cp .env.example .env
+# Edit .env with your PostgreSQL password
+```
+
+### 3. Load Data
+
+```bash
+# Step 1: Ingest Olist CSVs into raw schema (9 tables, ~1.5M rows)
 python -m ingestion.batch.ingest_csv
 
-# API ingestion
+# Step 2: Fetch FakeStore API data (3 tables)
 python -m ingestion.api.ingest_api
 
-# dbt transformations
-cd dbt_project
-dbt run --profiles-dir .
-dbt test --profiles-dir .
-dbt source freshness --profiles-dir .
+# Step 3: Build staging views + analytics tables
+python -m scripts.materialize_models
 
-# Performance optimization (indexes)
+# Step 4: Create performance indexes
 python -m ingestion.utils.performance
 ```
 
-### Run via Airflow
+### 4. Start the Platform
+
 ```bash
-export AIRFLOW_HOME=$(pwd)/airflow
-airflow db init
-airflow dags trigger ecommerce_data_pipeline
+# Terminal 1 — API server
+uvicorn api.main:app --reload
+
+# Terminal 2 — Frontend
+cd frontend && npm run dev
 ```
 
-### Run Tests
+Open **http://localhost:3000** to view the dashboard.
+
+### 5. Run Tests
+
 ```bash
 python -m pytest tests/ -v
 ```
 
-## Project Structure
+---
+
+## 📁 Project Structure
 
 ```
 ecommerce-data-platform/
-├── ingestion/              # Python ingestion layer
-│   ├── batch/              # CSV batch ingestion (Olist)
-│   │   ├── ingest_csv.py   # Dtype-enforced CSV loader
-│   │   └── dtype_specs.py  # Column type definitions for all 9 CSVs
-│   ├── api/                # FakeStore API ingestion
-│   │   ├── ingest_api.py   # Flatten JSON → upsert
-│   │   └── fakestore_client.py  # HTTP client with retry
-│   └── utils/              # Shared utilities
-│       ├── db.py           # Engine, upsert, checksum, sync state
-│       ├── logger.py       # Rotating file + stdout logging
-│       ├── metrics.py      # Pipeline observability (rows, timing, status)
-│       └── performance.py  # Index creation + partitioning strategy
-├── dbt_project/            # dbt models
+│
+├── ingestion/                  # Data ingestion layer
+│   ├── batch/
+│   │   ├── ingest_csv.py       # Dtype-enforced CSV loader with checksum tracking
+│   │   └── dtype_specs.py      # Explicit column types for all 9 CSVs
+│   ├── api/
+│   │   ├── ingest_api.py       # FakeStore API → flatten JSON → upsert
+│   │   └── fakestore_client.py # HTTP client with retry + backoff
+│   └── utils/
+│       ├── db.py               # Engine factory, upsert, schema management
+│       ├── logger.py           # Rotating file + stdout logging
+│       ├── metrics.py          # track_pipeline() context manager
+│       └── performance.py      # Idempotent index creation
+│
+├── dbt_project/                # dbt transformation models
 │   ├── models/
-│   │   ├── sources.yml     # Source definitions + freshness config
-│   │   ├── staging/        # 10 staging views (batch/ + api/)
-│   │   │   ├── schema.yml  # Staging tests
-│   │   │   ├── batch/      # 7 batch staging models
-│   │   │   └── api/        # 3 API staging models
-│   │   └── analytics/      # 6 analytics tables (star schema)
-│   │       └── schema.yml  # Dim/fact tests + referential integrity
-│   ├── macros/             # Custom dbt macros
-│   ├── dbt_project.yml     # Project config
-│   └── profiles.yml        # Connection profiles
-├── airflow/dags/           # Orchestration (10-task DAG)
-├── config/settings.py      # Central config via .env
-├── tests/                  # Pytest test suite
-├── logs/                   # Rotating log files
-└── dataset/                # Olist CSV files (external)
+│   │   ├── staging/            # 10 views (7 batch + 3 API)
+│   │   └── analytics/          # 6 tables (4 dims + 2 facts)
+│   ├── macros/                 # generate_schema_name override
+│   └── profiles.yml            # Connection config
+│
+├── scripts/
+│   └── materialize_models.py   # Direct SQL model builder (dbt alternative)
+│
+├── api/                        # FastAPI read-only backend
+│   ├── main.py                 # App with CORS + lifespan management
+│   ├── database.py             # Connection pool + graceful error handling
+│   ├── schemas.py              # Pydantic response models
+│   └── routers/
+│       ├── pipeline.py         # /api/pipeline/* — runs, stats, timeline
+│       ├── health.py           # /api/health/*   — status, freshness, ping
+│       ├── analytics.py        # /api/analytics/* — revenue, products, geo
+│       └── quality.py          # /api/quality/*   — row counts, freshness
+│
+├── frontend/                   # Next.js 16 dashboard
+│   ├── app/                    # App Router pages (4 pages)
+│   ├── components/             # Reusable UI (sidebar, header, charts)
+│   └── lib/                    # API client, formatters, utilities
+│
+├── airflow/dags/               # Orchestration DAG (10 tasks)
+├── observability/              # SQL views for metrics
+├── config/settings.py          # Central .env config loader
+├── tests/                      # Pytest suite
+└── .env.example                # Environment template
 ```
 
-## Star Schema
+---
+
+## 🗄️ Data Model
+
+### Star Schema
 
 ```
                     ┌──────────────┐
@@ -152,170 +209,134 @@ ecommerce-data-platform/
 │dim_customers │───│  fact_order_items   │───│ dim_products  │
 │(customer_key)│   │  (order_item_key)   │   │(product_key)  │
 └──────────────┘   └───────┬────────────┘   └──────────────┘
-       │                   │
-       │           ┌───────┴────────────┐   ┌──────────────┐
-       └───────────│ fact_order_payments │   │ dim_sellers   │
+                           │                        │
+                   ┌───────┴────────────┐   ┌──────────────┐
+                   │ fact_order_payments │   │ dim_sellers   │
                    │  (payment_key)     │   │ (seller_key)  │
                    └────────────────────┘   └──────────────┘
 ```
 
-| Model | Type | Materialization | Source |
-|-------|------|-----------------|--------|
-| dim_customers | Dimension | Table | Olist + FakeStore (merged) |
-| dim_products | Dimension | Table | Olist + FakeStore (merged) |
-| dim_sellers | Dimension | Table | Olist only |
-| dim_dates | Dimension | Table | Generated (2016–2019) |
-| fact_order_items | Fact | Incremental | Olist orders × items |
-| fact_order_payments | Fact | Incremental | Olist payments |
+### Model Summary
 
-## Design Decisions
+| Model | Type | Rows | Source |
+|-------|------|------|--------|
+| `dim_customers` | Dimension | 99,451 | Olist + FakeStore (merged) |
+| `dim_products` | Dimension | 32,971 | Olist + FakeStore (merged) |
+| `dim_sellers` | Dimension | 3,095 | Olist |
+| `dim_dates` | Dimension | 1,461 | Generated (2016–2019) |
+| `fact_order_items` | Fact | 112,650 | Orders × Items |
+| `fact_order_payments` | Fact | 103,886 | Order payments |
 
-### 1. Explicit Dtype Enforcement
-**Decision**: Every CSV column type is declared in `dtype_specs.py` — no pandas type inference.
-**Rationale**: Pandas silently coerces mixed-type columns (e.g., zip codes with leading zeros become integers). Explicit dtypes prevent data corruption at the earliest stage.
-**Trade-off**: Requires maintenance when source schemas change, but the failure is loud and immediate rather than silent and downstream.
+All dimensions include SCD Type 2 columns (`valid_from`, `valid_to`, `is_current`) — schema-ready for future implementation.
 
-### 2. Separate Staging for Batch and API
-**Decision**: Batch and API data are staged independently (`stg_*_batch`, `stg_*_api`) and merged only at the dimension layer.
-**Rationale**: Source systems have fundamentally different schemas, update cadences, and quality profiles. Separate staging lets us apply source-specific cleaning (e.g., dedup via ROW_NUMBER for batch, JSON flattening for API) without cross-contamination.
-**Trade-off**: More models to maintain (10 vs. ~6 if merged early), but dramatically simpler debugging when source-specific issues arise.
+---
 
-### 3. SCD Type 2 Schema-Ready (Not Active)
-**Decision**: Dimension tables include `valid_from`, `valid_to`, and `is_current` columns, but the SCD2 logic is not yet active — all rows are `is_current = true`.
-**Rationale**: Adding these columns now is cheap. Retrofitting them later (when dimension history becomes a requirement) would require a migration and backfill across all dependent fact tables. The schema is forward-compatible.
-**Trade-off**: Slight schema complexity for tables that currently behave as Type 1.
+## 🔌 API Reference
 
-### 4. File Checksum Incremental Processing
-**Decision**: Batch ingestion tracks MD5 hashes of CSV files in `_ingestion_log`. Already-ingested files are skipped.
-**Rationale**: Re-running the pipeline on unchanged data should be a no-op. Checksums provide this guarantee without relying on file timestamps (which are unreliable across systems).
-**Trade-off**: MD5 is not cryptographically secure, but collision probability for data integrity checks is negligible.
+### Pipeline Monitoring — `/api/pipeline`
 
-### 5. Coalesce to -1 for Missing Dimension Keys
-**Decision**: Fact tables use `COALESCE(dim_key, -1)` when dimension lookups fail (late-arriving facts).
-**Rationale**: Ensures fact rows are never dropped due to missing dimensions. The `-1` sentinel key is queryable and filterable, making it easy to monitor data quality. This is a standard Kimball pattern.
-**Trade-off**: Requires analysts to be aware that `-1` means "unresolved". Referential integrity tests exclude `-1` rows.
+| Endpoint | Description | Example Response |
+|----------|------------|-----------------|
+| `GET /runs?limit=50&status=` | Recent pipeline runs | `[{pipeline_name, task_name, status, rows_processed, duration_sec}]` |
+| `GET /stats` | Per-task aggregated statistics | `[{task_name, avg_duration, total_runs, success_rate}]` |
+| `GET /timeline?days=7` | Hourly throughput | `[{hour, rows_processed, run_count}]` |
 
-### 6. Idempotent Everything
-**Decision**: Every step is safe to re-run — upserts (ON CONFLICT DO UPDATE), IF NOT EXISTS for schemas/tables/indexes, checksum skipping.
-**Rationale**: In production pipelines, retries are inevitable (network issues, partial failures, Airflow task re-runs). Idempotency means retries never produce duplicates or corruption.
+### System Health — `/api/health`
 
-## Observability
+| Endpoint | Description |
+|----------|------------|
+| `GET /status` | Per-pipeline health (last run, failures in 24h) |
+| `GET /freshness` | Per-source freshness with timestamps |
+| `GET /ping` | DB connectivity check → `{status: "ok", db: "connected"}` |
+
+### Business Analytics — `/api/analytics`
+
+| Endpoint | Description |
+|----------|------------|
+| `GET /revenue?months=24` | Monthly revenue trends |
+| `GET /top-products?limit=10` | Top products by revenue |
+| `GET /customers?months=24` | Customer acquisition trends |
+| `GET /orders?months=24` | Order volume + avg order value |
+| `GET /geo?limit=20` | Geographic distribution by state |
+
+### Data Quality — `/api/quality`
+
+| Endpoint | Description |
+|----------|------------|
+| `GET /row-counts` | Row counts per monitored table |
+| `GET /summary` | Aggregate quality summary |
+| `GET /freshness` | Per-source freshness with status badges |
+
+---
+
+## 🛡️ Design Decisions
+
+### Why Explicit Dtypes?
+Every CSV column type is declared in `dtype_specs.py`. Pandas silently coerces mixed-type columns (e.g., zip codes with leading zeros → integers). Explicit dtypes prevent silent data corruption at the source.
+
+### Why Separate Batch + API Staging?
+Batch and API data have different schemas, update frequencies, and quality profiles. Merging happens only at the dimension layer, keeping source-specific cleaning isolated and debuggable.
+
+### Why SCD2 Schema Without Active Logic?
+Adding `valid_from`/`valid_to`/`is_current` columns now is cheap. Retrofitting them later requires migration + backfill across all fact tables. Forward-compatible schema design.
+
+### Why Coalesce to -1?
+Missing dimension keys use `-1` (standard Kimball pattern). Facts are never dropped due to late-arriving dimensions. RI tests exclude `-1` rows.
+
+### Why Idempotent Everything?
+Every step uses `ON CONFLICT DO UPDATE`, `IF NOT EXISTS`, and checksum skipping. Retries never produce duplicates or corruption.
+
+### Why Direct SQL Instead of dbt CLI?
+dbt-core is incompatible with Python 3.14 due to a `mashumaro` dependency issue. `scripts/materialize_models.py` executes identical SQL logic directly against PostgreSQL. The dbt model `.sql` files remain as the source of truth.
+
+---
+
+## 📊 Observability
 
 ### Pipeline Metrics
-Every ingestion task (batch and API) is wrapped in a `track_pipeline()` context manager that automatically records:
-- **rows_processed**: count of rows ingested per task
-- **duration_sec**: wall-clock execution time
-- **status**: `success` or `failure`
-- **error_message**: captured on failure (truncated to 500 chars)
+Every ingestion task is wrapped in `track_pipeline()` which records:
+- **rows_processed** — count of rows ingested
+- **duration_sec** — wall-clock execution time
+- **status** — `success` or `failure`
+- **error_message** — captured on failure
 
-Metrics are stored in `raw._pipeline_metrics` and can be queried:
+Stored in `raw._pipeline_metrics` and queryable:
+
 ```sql
--- Recent pipeline runs
-SELECT pipeline_name, task_name, status, rows_processed, duration_sec, started_at
+SELECT task_name, status, rows_processed, duration_sec
 FROM raw._pipeline_metrics
-ORDER BY started_at DESC
-LIMIT 20;
-
--- Failure rate by task
-SELECT task_name,
-       COUNT(*) FILTER (WHERE status = 'success') AS successes,
-       COUNT(*) FILTER (WHERE status = 'failure') AS failures,
-       ROUND(AVG(duration_sec), 2) AS avg_duration_sec
-FROM raw._pipeline_metrics
-GROUP BY task_name;
+ORDER BY started_at DESC;
 ```
 
 ### Source Freshness
-dbt source freshness checks run as the final DAG task. Sources are expected to be refreshed within:
-- **Warn**: 36 hours since last `_loaded_at`
-- **Error**: 72 hours since last `_loaded_at`
-
-Static tables (geolocation, product_category_translation) are excluded from freshness checks.
+Sources are validated against `_loaded_at` timestamps:
+- **Warn**: 36 hours since last load
+- **Error**: 72 hours since last load
 
 ### Logging
-Structured rotating logs (10MB × 5 backups) per module in `logs/`. Format:
+Structured rotating logs (10MB × 5 backups) per module in `logs/`:
 ```
-2026-05-04 14:30:00 | batch_ingest | INFO | ✓ orders: 99441 rows
+2026-05-08 10:46:22 | db | INFO | Upserted 99441 rows into raw.orders
 ```
 
-## Data Quality
+---
 
-### dbt Tests
-Three layers of data quality validation:
-
-| Layer | Test Type | Examples |
-|-------|-----------|---------|
-| **Staging** | Schema validation | not_null, unique, accepted_values on key columns |
-| **Analytics** | Null/uniqueness | Surrogate keys are not_null + unique |
-| **Analytics** | Referential integrity | fact FK → dim PK via `relationships` tests |
-
-Referential integrity tests use `where: "key != -1"` to exclude sentinel values from late-arriving facts.
-
-### Freshness Validation
-Source freshness is tracked via `_loaded_at` timestamps on all raw tables. `dbt source freshness` validates data currency.
-
-## Performance Optimization
+## ⚡ Performance
 
 ### Indexes
-Indexes are created idempotently (`CREATE INDEX IF NOT EXISTS`) on:
-- **Fact FK columns**: `customer_key`, `product_key`, `seller_key`, `order_date_key`
-- **Fact lookup columns**: `order_id`, `payment_type`
-- **Fact timestamps**: `_loaded_at` (used by incremental logic)
-- **Dimension natural keys**: `customer_id`, `product_id`, `seller_id`, `full_date`
-- **SCD2 filter**: `is_current` on dimensions
-- **Raw timestamps**: `_loaded_at` on all raw tables (freshness queries)
+Created idempotently on:
+- Fact FK columns (`customer_key`, `product_key`, `seller_key`, `order_date_key`)
+- Lookup columns (`order_id`, `payment_type`)
+- Timestamps (`_loaded_at` for incremental logic and freshness)
+- Dimension natural keys (`customer_id`, `product_id`, `seller_id`)
+- SCD2 filter (`is_current`)
 
 ### Partitioning Strategy
-Fact tables are candidates for PostgreSQL native range partitioning by `order_date_key` (YYYYMMDD integer), partitioned into yearly buckets. This is **documented but not auto-applied** because:
-1. PostgreSQL requires table recreation for partitioning existing tables
-2. The current dataset (2016–2019, ~100K rows) doesn't yet warrant the complexity
-3. When data volume grows past ~10M rows, apply partitioning during a maintenance window
+Fact tables are candidates for range partitioning by `order_date_key` (yearly buckets). Documented but not applied — the current ~100K row dataset doesn't warrant it. Apply when data exceeds ~10M rows.
 
-See `ingestion/utils/performance.py` for ready-to-use partition DDL.
+---
 
-## Scaling Strategy
-
-### Current State (Single-Node)
-The platform runs on a single PostgreSQL instance with Airflow SequentialExecutor. This is appropriate for:
-- Dataset size: ~100K order rows, ~30K customers, ~32K products
-- Update frequency: daily batch
-- Query concurrency: low (analytics team)
-
-### Scaling Path
-| Growth Stage | Trigger | Action |
-|-------------|---------|--------|
-| **10× data** | >1M rows in facts | Apply partitioning on fact tables; switch to CeleryExecutor |
-| **100× data** | >10M rows | Migrate to columnar storage (Redshift/BigQuery); consider Spark for ingestion |
-| **Real-time** | Sub-hour SLA | Add Kafka/CDC for streaming ingestion; keep batch as backfill |
-| **Multi-tenant** | Multiple data consumers | Add dbt exposures; implement row-level security |
-
-### What We'd Change
-1. **Ingestion**: Replace row-by-row upserts with COPY-based bulk loads + staging tables for 10-100× throughput
-2. **Orchestration**: Move from SequentialExecutor to CeleryExecutor or KubernetesExecutor
-3. **Storage**: Add columnar indexes or migrate to a columnar warehouse
-4. **Caching**: Add a semantic layer (dbt metrics / Cube.js) for repeated analytical queries
-
-## Failure Handling
-
-### Ingestion Failures
-- **CSV file missing**: Logged as warning, skipped (non-blocking)
-- **Schema mismatch**: Raises `ValueError` with explicit column diff
-- **API timeout/5xx**: Exponential backoff retry (configurable via `.env`: max attempts, base delay, factor)
-- **API rate limit (429)**: Honors `Retry-After` header; falls back to backoff
-- **Database connection**: SQLAlchemy `pool_pre_ping` detects stale connections
-
-### Transformation Failures
-- **dbt model failure**: Airflow retries 2× with 5-minute delay
-- **dbt test failure**: Logged but does not block index creation or freshness check
-- **Incremental overlap**: `_loaded_at` watermark ensures no duplicate processing
-
-### Operational Recovery
-- **Full re-run**: Safe due to idempotency (upserts, IF NOT EXISTS, checksum skipping)
-- **Partial failure**: Airflow task-level retry; downstream tasks wait for all upstreams
-- **Data backfill**: Run `dbt run --full-refresh --select <model>` to rebuild from scratch
-- **Metric inspection**: Query `raw._pipeline_metrics` for failure details and timing
-
-## Pipeline Flow (DAG)
+## 🔄 Pipeline DAG
 
 ```
 create_schemas
@@ -335,4 +356,53 @@ create_schemas
       └── dbt_source_freshness
 ```
 
-10 tasks, daily schedule, `max_active_runs=1`, retries=2, execution timeout=1h.
+**10 tasks** · daily schedule · `max_active_runs=1` · retries: 2 · timeout: 1 hour
+
+---
+
+## 🚧 Failure Handling
+
+| Scenario | Behavior |
+|----------|----------|
+| CSV file missing | Warning logged, skipped (non-blocking) |
+| Schema mismatch | `ValueError` with explicit column diff |
+| API timeout / 5xx | Exponential backoff retry (configurable via `.env`) |
+| API rate limit (429) | Honors `Retry-After` header |
+| Missing DB table | API returns empty response (graceful degradation) |
+| dbt model failure | Airflow retries 2× with 5-min delay |
+| Full re-run needed | Safe — idempotent upserts, checksums, IF NOT EXISTS |
+
+---
+
+## 📈 Scaling Path
+
+| Stage | Trigger | Action |
+|-------|---------|--------|
+| **10× data** | >1M fact rows | Apply partitioning, switch to CeleryExecutor |
+| **100× data** | >10M rows | Columnar warehouse (Redshift/BigQuery), Spark ingestion |
+| **Real-time** | Sub-hour SLA | Kafka/CDC streaming, keep batch as backfill |
+| **Multi-tenant** | Multiple consumers | dbt exposures, row-level security |
+
+---
+
+## 📋 Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `POSTGRES_HOST` | `localhost` | Database host |
+| `POSTGRES_PORT` | `5432` | Database port |
+| `POSTGRES_DB` | `ecommerce` | Database name |
+| `POSTGRES_USER` | `postgres` | Database user |
+| `POSTGRES_PASSWORD` | — | Database password |
+| `FAKESTORE_API_BASE_URL` | `https://fakestoreapi.com` | API base URL |
+| `API_RETRY_MAX_ATTEMPTS` | `3` | Max retry attempts |
+| `DATASET_PATH` | `../dataset` | Path to Olist CSV files |
+| `LOG_LEVEL` | `INFO` | Logging verbosity |
+
+---
+
+## 📄 License
+
+This project is for educational and portfolio purposes.  
+Dataset: [Brazilian E-Commerce Public Dataset by Olist](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce)  
+API: [FakeStore API](https://fakestoreapi.com)

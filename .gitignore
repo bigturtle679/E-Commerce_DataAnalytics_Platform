@@ -13,6 +13,7 @@ venv/
 
 # Logs
 logs/*.log
+*.log
 
 # dbt
 dbt_project/target/
@@ -25,9 +26,16 @@ airflow/airflow.cfg
 airflow/webserver_config.py
 airflow/logs/
 
+# Frontend
+frontend/.next/
+frontend/node_modules/
+frontend/out/
+
 # IDE
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # OS
 .DS_Store
@@ -38,3 +46,6 @@ Thumbs.db
 
 # Dataset (large files)
 dataset/
+
+# Temp audit scripts
+_audit_db.py
