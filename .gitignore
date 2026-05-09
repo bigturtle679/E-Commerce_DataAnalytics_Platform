@@ -8,6 +8,7 @@ build/
 
 # Environment
 .env
+.env.docker
 .venv/
 venv/
 

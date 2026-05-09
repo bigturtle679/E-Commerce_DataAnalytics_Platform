@@ -15,7 +15,9 @@ from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 
 # Add project root to path for imports
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+# PROJECT_ROOT env var is set in docker-compose for container compatibility;
+# falls back to directory traversal for local development.
+PROJECT_ROOT = Path(os.environ.get("PROJECT_ROOT", str(Path(__file__).resolve().parent.parent.parent)))
 sys.path.insert(0, str(PROJECT_ROOT))
 
 DBT_PROJECT_DIR = PROJECT_ROOT / "dbt_project"

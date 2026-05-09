@@ -1,0 +1,65 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+.pytest_cache/
+
+# Node
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# Logs
+logs/
+*.log
+airflow/logs/
+
+# Environment files (injected via env_file in compose)
+.env
+.env.local
+.env.docker
+
+# dbt build artifacts
+dbt_project/target/
+dbt_project/dbt_packages/
+dbt_project/logs/
+
+# Airflow local state
+airflow/airflow.db
+airflow/airflow.cfg
+airflow/webserver_config.py
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dataset (bind-mounted as volume, not baked into images)
+dataset/
+
+# Tests (not needed in production images)
+tests/
+
+# Docker files (not needed inside containers)
+Dockerfile*
+docker-compose*.yml
+Makefile
+docker/
+
+# Documentation
+*.md
+!README.md

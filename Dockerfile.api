@@ -1,0 +1,32 @@
+# ─── FastAPI Backend ──────────────────────────────────────────
+# Serves the read-only API layer for the dashboard.
+# Includes full project code because API imports config/, ingestion/, scripts/.
+
+FROM python:3.12-slim AS base
+
+# System deps for psycopg2-binary
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install Python dependencies (layer cache optimization)
+COPY requirements.txt ./requirements.txt
+COPY api/requirements.txt ./api/requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt -r api/requirements.txt
+
+# Copy application code
+COPY config/ ./config/
+COPY ingestion/ ./ingestion/
+COPY scripts/ ./scripts/
+COPY dbt_project/ ./dbt_project/
+COPY observability/ ./observability/
+COPY api/ ./api/
+
+# Create logs directory
+RUN mkdir -p /app/logs
+
+EXPOSE 8000
+
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]

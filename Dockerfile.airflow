@@ -1,0 +1,37 @@
+# ─── Apache Airflow ───────────────────────────────────────────
+# SequentialExecutor for local development.
+# DAGs are bind-mounted, but project code is baked in for imports.
+
+FROM apache/airflow:2.9.3-python3.12
+
+USER root
+
+# System deps for psycopg2 compilation if needed
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
+
+USER airflow
+
+WORKDIR /opt/airflow
+
+# Install project Python dependencies that DAGs import
+COPY --chown=airflow:root requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir \
+    pandas==2.2.2 \
+    sqlalchemy==2.0.30 \
+    psycopg2-binary==2.9.9 \
+    requests==2.32.3 \
+    python-dotenv==1.0.1
+
+# Copy project modules that DAG tasks import at runtime
+COPY --chown=airflow:root config/ /opt/airflow/config/
+COPY --chown=airflow:root ingestion/ /opt/airflow/ingestion/
+COPY --chown=airflow:root scripts/ /opt/airflow/scripts/
+COPY --chown=airflow:root dbt_project/ /opt/airflow/dbt_project/
+COPY --chown=airflow:root observability/ /opt/airflow/observability/
+
+# DAGs are bind-mounted in docker-compose, but copy as fallback
+COPY --chown=airflow:root airflow/dags/ /opt/airflow/dags/
+
+EXPOSE 8080

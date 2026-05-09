@@ -59,6 +59,34 @@ The platform includes a full-stack observability and analytics dashboard with 4 
           └────────────────────────────┘
 ```
 
+### Container Architecture
+
+```
+  docker compose --env-file .env.docker up --build
+  ┌─────────────────────────────────────────────────────────────┐
+  │                   platform-net (bridge)                     │
+  │                                                             │
+  │  ┌──────────────┐   ┌──────────────┐   ┌────────────────┐  │
+  │  │  postgres     │   │  api         │   │  frontend      │  │
+  │  │  :5432        │◄──│  :8000       │   │  :3000         │  │
+  │  │  ecommerce DB │   │  FastAPI     │   │  Next.js       │  │
+  │  │  airflow_meta │   │  (read-only) │   │  (standalone)  │  │
+  │  └──────┬───────┘   └──────────────┘   └────────────────┘  │
+  │         │                                                   │
+  │  ┌──────┴───────┐   ┌──────────────┐                       │
+  │  │ airflow-init │──▶│ airflow-web  │                       │
+  │  │ (one-shot)   │   │  :8080       │                       │
+  │  └──────────────┘   └──────────────┘                       │
+  │                     ┌──────────────┐                       │
+  │                     │ airflow-sched│                       │
+  │                     │ (scheduler)  │                       │
+  │                     └──────────────┘                       │
+  │                                                             │
+  │  Volumes: postgres_data │ airflow_logs                     │
+  │  Mounts:  ./dataset │ ./airflow/dags                       │
+  └─────────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ## ⚙️ Tech Stack
@@ -80,14 +108,85 @@ The platform includes a full-stack observability and analytics dashboard with 4 
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Option A: Docker (recommended)
+
+> One command to start the entire platform. Requires only **Docker** and **Docker Compose**.
+
+#### 1. Clone
+
+```bash
+git clone https://github.com/bigturtle679/E-Commerce_DataAnalytics_Platform.git
+cd E-Commerce_DataAnalytics_Platform
+```
+
+#### 2. Configure Environment
+
+```bash
+cp .env.docker.example .env.docker
+# Edit .env.docker with your preferred PostgreSQL password
+```
+
+Or use the provided `.env.docker` defaults (fine for local development).
+
+#### 3. Place Dataset
+
+Place the [Olist dataset CSVs](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) in a `dataset/` directory at the project root.
+
+#### 4. Start Services
+
+```bash
+make up            # starts postgres + api + frontend
+make verify        # checks all services are healthy
+```
+
+Or without Make:
+```bash
+docker compose --env-file .env.docker up --build -d
+```
+
+#### 5. Populate Data
+
+```bash
+make seed          # runs full pipeline: ingest + transform
+```
+
+Or step-by-step:
+```bash
+make ingest        # batch CSVs + FakeStore API
+make transform     # staging views + analytics tables + indexes
+```
+
+#### 6. Access
+
+| Service | URL | Credentials |
+|---------|-----|-------------|
+| **Dashboard** | http://localhost:3000 | — |
+| **API** | http://localhost:8000/docs | — |
+| **Airflow** | http://localhost:8080 | admin / admin |
+| **PostgreSQL** | localhost:5432 | postgres / (see .env.docker) |
+
+> Airflow requires `make airflow` to start (not included in default `make up`).
+
+#### 7. Stop / Restart
+
+```bash
+make down          # stop all (preserves data)
+make clean         # stop + remove all volumes
+make rebuild       # force rebuild all images
+```
+
+---
+
+### Option B: Local Development
+
+#### Prerequisites
 
 - **Python 3.10+**
 - **Node.js 18+**
 - **PostgreSQL** running on `localhost:5432`
 - A database named `ecommerce` created
 
-### 1. Clone & Install
+#### 1. Clone & Install
 
 ```bash
 git clone https://github.com/bigturtle679/E-Commerce_DataAnalytics_Platform.git
@@ -100,30 +199,23 @@ pip install -r requirements.txt
 cd frontend && npm install && cd ..
 ```
 
-### 2. Configure Environment
+#### 2. Configure Environment
 
 ```bash
 cp .env.example .env
 # Edit .env with your PostgreSQL password
 ```
 
-### 3. Load Data
+#### 3. Load Data
 
 ```bash
-# Step 1: Ingest Olist CSVs into raw schema (9 tables, ~1.5M rows)
 python -m ingestion.batch.ingest_csv
-
-# Step 2: Fetch FakeStore API data (3 tables)
 python -m ingestion.api.ingest_api
-
-# Step 3: Build staging views + analytics tables
 python -m scripts.materialize_models
-
-# Step 4: Create performance indexes
 python -m ingestion.utils.performance
 ```
 
-### 4. Start the Platform
+#### 4. Start the Platform
 
 ```bash
 # Terminal 1 — API server
@@ -135,7 +227,7 @@ cd frontend && npm run dev
 
 Open **http://localhost:3000** to view the dashboard.
 
-### 5. Run Tests
+#### 5. Run Tests
 
 ```bash
 python -m pytest tests/ -v
@@ -147,6 +239,18 @@ python -m pytest tests/ -v
 
 ```
 ecommerce-data-platform/
+│
+├── docker-compose.yml          # Full-stack orchestration (6 services)
+├── Dockerfile.api              # FastAPI container (python:3.12-slim)
+├── Dockerfile.frontend         # Next.js container (3-stage, standalone)
+├── Dockerfile.airflow          # Airflow container (official 2.9.3 image)
+├── .dockerignore               # Docker build context exclusions
+├── .env.docker                 # Docker environment (service-name networking)
+├── .env.example                # Local dev environment template
+│
+├── docker/
+│   └── postgres/
+│       └── init-airflow-db.sql # Creates airflow_metadata DB on first init
 │
 ├── ingestion/                  # Data ingestion layer
 │   ├── batch/
@@ -166,7 +270,7 @@ ecommerce-data-platform/
 │   │   ├── staging/            # 10 views (7 batch + 3 API)
 │   │   └── analytics/          # 6 tables (4 dims + 2 facts)
 │   ├── macros/                 # generate_schema_name override
-│   └── profiles.yml            # Connection config
+│   └── profiles.yml            # Connection config (env_var driven)
 │
 ├── scripts/
 │   └── materialize_models.py   # Direct SQL model builder (dbt alternative)
@@ -190,7 +294,7 @@ ecommerce-data-platform/
 ├── observability/              # SQL views for metrics
 ├── config/settings.py          # Central .env config loader
 ├── tests/                      # Pytest suite
-└── .env.example                # Environment template
+└── dataset/                    # Olist CSV files (bind-mounted into containers)
 ```
 
 ---
@@ -396,8 +500,122 @@ create_schemas
 | `POSTGRES_PASSWORD` | — | Database password |
 | `FAKESTORE_API_BASE_URL` | `https://fakestoreapi.com` | API base URL |
 | `API_RETRY_MAX_ATTEMPTS` | `3` | Max retry attempts |
-| `DATASET_PATH` | `../dataset` | Path to Olist CSV files |
+| `DATASET_PATH` | `./dataset` | Path to Olist CSV files |
 | `LOG_LEVEL` | `INFO` | Logging verbosity |
+| `API_HOST` | `0.0.0.0` | API bind address |
+| `API_PORT` | `8000` | API port |
+| `CORS_ORIGINS` | `http://localhost:3000` | Allowed CORS origins |
+| `NEXT_PUBLIC_API_URL` | `http://localhost:8000` | Frontend → API URL |
+
+---
+
+## 🧑‍💻 Developer Experience
+
+### Makefile Commands
+
+| Command | Description |
+|---------|-------------|
+| `make up` | Start core stack (postgres + api + frontend) |
+| `make down` | Stop all services (preserves data) |
+| `make rebuild` | Force rebuild all images and restart |
+| `make clean` | Stop + remove all data volumes |
+| `make logs` | Tail logs for all services |
+| `make ingest` | Run batch CSV + API ingestion |
+| `make transform` | Materialize models + create indexes |
+| `make seed` | Full pipeline: ingest + transform |
+| `make airflow` | Start Airflow (scheduler + webserver) |
+| `make test` | Run Python test suite |
+| `make lint` | Run linting |
+| `make status` | Show service health |
+| `make verify` | Verify all services are accessible |
+| `make psql` | Open PostgreSQL shell |
+| `make shell` | Open bash in API container |
+
+### Compose Profiles
+
+The default `make up` starts only the core stack (postgres, api, frontend). Airflow is behind a profile:
+
+```bash
+# Core only (default)
+make up
+
+# Core + Airflow
+make airflow
+
+# Or manually:
+docker compose --env-file .env.docker --profile airflow up -d
+```
+
+### Resource Limits
+
+| Service | Memory Limit |
+|---------|--------------|
+| postgres | 512 MB |
+| api | 512 MB |
+| frontend | 256 MB |
+| airflow-webserver | 1 GB |
+| airflow-scheduler | 1 GB |
+
+---
+
+## 🐳 Docker Reference
+
+### Services
+
+| Service | Container | Port | Profile | Description |
+|---------|-----------|------|---------|-------------|
+| `postgres` | `ecommerce-postgres` | 5432 | default | Data warehouse + Airflow metadata |
+| `api` | `ecommerce-api` | 8000 | default | FastAPI read-only backend |
+| `frontend` | `ecommerce-frontend` | 3000 | default | Next.js dashboard |
+| `airflow-init` | `ecommerce-airflow-init` | — | airflow | One-shot: DB migrate + admin user |
+| `airflow-webserver` | `ecommerce-airflow-webserver` | 8080 | airflow | Airflow UI |
+| `airflow-scheduler` | `ecommerce-airflow-scheduler` | — | airflow | DAG executor |
+
+### Volumes
+
+| Volume | Purpose | Survives `down`? | Survives `down -v`? |
+|--------|---------|:-:|:-:|
+| `ecommerce-postgres-data` | Database files | ✅ | ❌ |
+| `ecommerce-airflow-logs` | Airflow task logs | ✅ | ❌ |
+
+### Healthchecks
+
+| Service | Method | Endpoint | Interval |
+|---------|--------|----------|----------|
+| `postgres` | `pg_isready` | — | 5s |
+| `api` | `curl` | `/api/health/ping` | 10s |
+| `frontend` | `wget` | `/` | 10s |
+| `airflow-webserver` | `curl` | `/health` | 15s |
+
+---
+
+## 🔧 Troubleshooting
+
+| Problem | Cause | Solution |
+|---------|-------|----------|
+| `api` exits on startup | PostgreSQL not ready | Check `postgres` healthcheck; increase `start_period` |
+| Frontend shows no data | API not reachable | Verify `NEXT_PUBLIC_API_URL` in `.env.docker`; rebuild frontend |
+| Airflow UI shows no DAGs | DAG folder not mounted | Check `./airflow/dags/` exists and contains the DAG file |
+| `airflow-init` fails | `airflow_metadata` DB missing | Delete postgres volume: `docker compose down -v`, then re-run |
+| Port conflict | Host port already in use | Change port mapping in `docker-compose.yml` (e.g., `8001:8000`) |
+| Ingestion fails: "No CSV files" | Dataset not mounted | Place Olist CSVs in `./dataset/` at project root |
+| Permission denied on logs | Docker user mismatch | Run `chmod -R 777 airflow/logs/` on host |
+
+### Useful Commands
+
+```bash
+# Makefile shortcuts (recommended)
+make logs          # tail all service logs
+make logs-api      # tail API logs only
+make psql          # open PostgreSQL shell
+make shell         # open bash in API container
+make status        # check service health
+make verify        # verify all endpoints accessible
+
+# Raw docker compose
+docker compose --env-file .env.docker build api   # rebuild single service
+docker compose --env-file .env.docker up -d api    # restart single service
+```
 
 ---
 

@@ -247,12 +247,71 @@
 | analytics | fact_order_items | 112,650 |
 | analytics | fact_order_payments | 103,886 |
 
+### Phase 1 (Infra): Docker Containerization ✅
+- **Docker Compose orchestration** — full stack via `docker compose --env-file .env.docker up --build`
+- **6 services**: postgres, api, frontend, airflow-init, airflow-webserver, airflow-scheduler
+- **Dockerfiles**:
+  - `Dockerfile.api` — Python 3.12-slim, FastAPI + full project code
+  - `Dockerfile.frontend` — 3-stage multi-stage build (deps → build → standalone runtime)
+  - `Dockerfile.airflow` — apache/airflow:2.9.3-python3.12 with project deps
+- **PostgreSQL persistence** — named volume `ecommerce-postgres-data`
+- **Airflow metadata** — separate `airflow_metadata` database on same PostgreSQL instance
+- **Environment standardization**:
+  - `.env.docker` — Docker-specific config (service-name networking)
+  - `.env.example` — updated with Docker context comments
+- **Healthchecks** — postgres (pg_isready), api (curl /health/ping), frontend (wget)
+- **Dependency ordering** — postgres → api → frontend; postgres → airflow-init → airflow-*
+- **Infrastructure-only changes to existing code**:
+  - `airflow/dags/ecommerce_pipeline_dag.py` — `PROJECT_ROOT` env var override for container path resolution
+  - `frontend/next.config.ts` — `output: 'standalone'` for Docker-optimized builds
+- **Supporting files**: `.dockerignore`, `docker/postgres/init-airflow-db.sql`
+- **Documentation**: README updated with Docker section, architecture diagram, troubleshooting
+
+### Phase 1.1 (Infra): Infrastructure Polish & Developer Experience ✅
+- **Makefile** — 17 developer-friendly commands (`make up`, `make seed`, `make logs`, etc.)
+  - Colored output, grouped by lifecycle/pipeline/quality/operations
+  - Wraps docker compose with `--env-file .env.docker` consistently
+- **Compose Profiles** — Airflow services behind `airflow` profile
+  - Default `make up` starts only postgres + api + frontend (faster, lighter)
+  - `make airflow` adds scheduler + webserver
+- **Resource Constraints** — memory limits on all services
+  - postgres 512M, api 512M, frontend 256M, airflow 1G each
+- **Docker Build Optimization**:
+  - `.dockerignore` expanded: excludes `tests/`, `Dockerfile*`, `docker-compose*`, `Makefile`, `docker/`
+  - Reduces build context size and prevents cache invalidation
+- **Dataset Volume Mount** — `./dataset` bind-mounted into API container for `make ingest`
+- **Startup Verification** — `scripts/verify_startup.py`
+  - Checks PostgreSQL (TCP), API (HTTP), Frontend (HTTP) with retries
+  - Callable via `make verify`
+  - Exit code 0/1 for CI integration
+- **README Improvements**:
+  - Developer Experience section with full Makefile reference
+  - Compose profiles documentation
+  - Resource limits table
+  - Updated quick start to use `make` commands
+
 ## How to Resume
 
 1. Read this file
-2. Check `.env` for config
+2. Check `.env` for config (local) or `.env.docker` for Docker
 3. Check `config/settings.py` for all settings
 4. Run `python -m pytest tests/test_ingestion.py -v` to verify setup
+
+### Option A: Docker (recommended)
+```bash
+make up            # Start core services (postgres + api + frontend)
+make verify        # Check all services are healthy
+make seed          # Full pipeline: ingest + transform (first time only)
+
+# Useful commands:
+make logs          # Tail service logs
+make status        # Check health status
+make psql          # PostgreSQL shell
+make airflow       # Start Airflow (optional)
+make down          # Stop all (preserves data)
+```
+
+### Option B: Local development
 5. Populate data (if empty DB):
    ```bash
    python -m ingestion.batch.ingest_csv     # Load 9 Olist CSVs → raw.*
@@ -268,4 +327,3 @@
    cd frontend && npm run dev
    ```
 7. Open http://localhost:3000 for the dashboard
-
