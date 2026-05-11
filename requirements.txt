@@ -1,8 +1,10 @@
+# ─── Runtime Dependencies ─────────────────────────────────────
+# For dev tooling (ruff, black, pytest, mypy), see requirements-dev.txt
+# For API deps (fastapi, uvicorn), see api/requirements.txt
+# For Airflow/dbt, see Dockerfile.airflow (container-only)
+
 pandas==2.2.2
 sqlalchemy==2.0.30
 psycopg2-binary==2.9.9
 requests==2.32.3
 python-dotenv==1.0.1
-dbt-postgres==1.8.2
-apache-airflow==2.9.3
-pytest==8.2.2

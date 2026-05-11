@@ -2,10 +2,12 @@
 # Developer-friendly Makefile for common operations.
 # Usage: make <target>
 #
-# Requires: Docker, Docker Compose
+# Requires: Docker, Docker Compose (for stack commands)
+# Quality commands (lint, format, ci) run locally — no Docker needed.
 
-.PHONY: help up down rebuild logs ingest transform test lint \
-        api frontend airflow status clean verify
+.PHONY: help up down rebuild logs ingest transform test lint format \
+        ci check test-unit frontend-check reset-db \
+        api frontend airflow status clean verify psql shell
 
 # ── Config ────────────────────────────────────────────────────
 COMPOSE  = docker compose --env-file .env.docker
@@ -24,8 +26,21 @@ help: ## Show this help
 	@echo "$(CYAN)E-Commerce Data Platform$(NC)"
 	@echo "$(CYAN)========================$(NC)"
 	@echo ""
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
-		awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-14s$(NC) %s\n", $$1, $$2}'
+	@echo "$(YELLOW)Stack Lifecycle$(NC)"
+	@grep -E '^(up|down|rebuild|clean):.*?## .*$$' $(MAKEFILE_LIST) | \
+		awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-18s$(NC) %s\n", $$1, $$2}'
+	@echo ""
+	@echo "$(YELLOW)Code Quality (local)$(NC)"
+	@grep -E '^(lint|format|test-unit|frontend-check|ci|check):.*?## .*$$' $(MAKEFILE_LIST) | \
+		awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-18s$(NC) %s\n", $$1, $$2}'
+	@echo ""
+	@echo "$(YELLOW)Pipeline (Docker)$(NC)"
+	@grep -E '^(ingest|transform|seed|test):.*?## .*$$' $(MAKEFILE_LIST) | \
+		awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-18s$(NC) %s\n", $$1, $$2}'
+	@echo ""
+	@echo "$(YELLOW)Operations$(NC)"
+	@grep -E '^(logs|status|verify|psql|shell|reset-db|airflow):.*?## .*$$' $(MAKEFILE_LIST) | \
+		awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-18s$(NC) %s\n", $$1, $$2}'
 	@echo ""
 
 # ── Stack Lifecycle ───────────────────────────────────────────
@@ -51,17 +66,44 @@ clean: ## Stop services and remove ALL data (volumes)
 	$(COMPOSE) down -v --remove-orphans
 	@echo "$(RED)✓ All data removed.$(NC)"
 
-# ── Logs ──────────────────────────────────────────────────────
-logs: ## Tail logs for all services
-	$(COMPOSE) logs -f --tail=100
+# ── Code Quality (runs locally — no Docker needed) ───────────
+lint: ## Lint Python code (ruff + black --check)
+	@echo "$(CYAN)▸ Ruff linting...$(NC)"
+	@python -m ruff check .
+	@echo "$(CYAN)▸ Black format check...$(NC)"
+	@python -m black --check --quiet .
+	@echo "$(GREEN)✓ All lint checks passed.$(NC)"
 
-logs-api: ## Tail API logs only
-	$(COMPOSE) logs -f --tail=100 api
+format: ## Auto-format Python code (black + ruff --fix)
+	@echo "$(CYAN)▸ Formatting with Black...$(NC)"
+	@python -m black .
+	@echo "$(CYAN)▸ Fixing lint issues with Ruff...$(NC)"
+	@python -m ruff check --fix .
+	@echo "$(GREEN)✓ Formatting complete.$(NC)"
 
-logs-db: ## Tail PostgreSQL logs only
-	$(COMPOSE) logs -f --tail=100 postgres
+test-unit: ## Run unit tests (no database required)
+	@echo "$(CYAN)▸ Running unit tests...$(NC)"
+	@python -m pytest tests/test_ingestion.py -v -m "not integration"
+	@echo "$(GREEN)✓ Unit tests passed.$(NC)"
 
-# ── Data Pipeline ─────────────────────────────────────────────
+frontend-check: ## Validate frontend (lint + typecheck + build)
+	@echo "$(CYAN)▸ ESLint...$(NC)"
+	@cd frontend && npm run lint
+	@echo "$(CYAN)▸ TypeScript validation...$(NC)"
+	@cd frontend && npm run typecheck
+	@echo "$(CYAN)▸ Production build verification...$(NC)"
+	@cd frontend && npm run build
+	@echo "$(GREEN)✓ Frontend validation passed.$(NC)"
+
+ci: lint test-unit frontend-check ## Full CI validation (local)
+	@echo ""
+	@echo "$(GREEN)═══════════════════════════════════════$(NC)"
+	@echo "$(GREEN)  ✓ All CI checks passed successfully  $(NC)"
+	@echo "$(GREEN)═══════════════════════════════════════$(NC)"
+
+check: ci ## Alias for 'make ci'
+
+# ── Data Pipeline (Docker) ────────────────────────────────────
 ingest: ## Run full ingestion (batch CSVs + API)
 	@echo "$(CYAN)▸ Ingesting batch CSVs...$(NC)"
 	$(EXEC_API) python -m ingestion.batch.ingest_csv
@@ -82,6 +124,21 @@ seed: ## Full pipeline: ingest + transform (first-time setup)
 	@$(MAKE) transform
 	@echo "$(GREEN)✓ Data pipeline complete. Dashboard is ready.$(NC)"
 
+test: ## Run full test suite in Docker
+	@echo "$(CYAN)▸ Running tests in container...$(NC)"
+	$(EXEC_API) python -m pytest tests/ -v
+	@echo "$(GREEN)✓ Tests complete.$(NC)"
+
+# ── Logs ──────────────────────────────────────────────────────
+logs: ## Tail logs for all services
+	$(COMPOSE) logs -f --tail=100
+
+logs-api: ## Tail API logs only
+	$(COMPOSE) logs -f --tail=100 api
+
+logs-db: ## Tail PostgreSQL logs only
+	$(COMPOSE) logs -f --tail=100 postgres
+
 # ── Individual Services ───────────────────────────────────────
 api: ## Open API docs in browser
 	@echo "$(GREEN)▸ API: http://localhost:8000/docs$(NC)"
@@ -93,17 +150,6 @@ airflow: ## Start Airflow services (scheduler + webserver)
 	@echo "$(CYAN)▸ Starting Airflow...$(NC)"
 	$(COMPOSE) --profile airflow up -d --build
 	@echo "$(GREEN)▸ Airflow UI: http://localhost:8080 (admin/admin)$(NC)"
-
-# ── Quality ───────────────────────────────────────────────────
-test: ## Run Python test suite
-	@echo "$(CYAN)▸ Running tests...$(NC)"
-	$(EXEC_API) python -m pytest tests/ -v
-	@echo "$(GREEN)✓ Tests complete.$(NC)"
-
-lint: ## Run Python linting (ruff)
-	@echo "$(CYAN)▸ Linting...$(NC)"
-	$(EXEC_API) python -m ruff check . || true
-	@echo "$(GREEN)✓ Lint complete.$(NC)"
 
 # ── Operations ────────────────────────────────────────────────
 status: ## Show service health status
@@ -122,3 +168,14 @@ psql: ## Open PostgreSQL shell
 
 shell: ## Open bash shell in API container
 	$(EXEC_API) bash
+
+reset-db: ## Reset database (stop + delete volume + restart)
+	@echo "$(RED)▸ Resetting database...$(NC)"
+	$(COMPOSE) stop postgres
+	$(COMPOSE) rm -f postgres
+	docker volume rm ecommerce-postgres-data 2>/dev/null || true
+	@echo "$(CYAN)▸ Restarting with fresh database...$(NC)"
+	$(COMPOSE) up -d postgres
+	@echo "$(YELLOW)⏳ Waiting for PostgreSQL to be ready...$(NC)"
+	@sleep 5
+	@echo "$(GREEN)✓ Database reset complete. Run 'make seed' to repopulate.$(NC)"

@@ -1,6 +1,6 @@
 # Progress Tracker
 
-> Last updated: 2026-05-08
+> Last updated: 2026-05-11
 
 ## Completed Components
 
@@ -289,6 +289,49 @@
   - Compose profiles documentation
   - Resource limits table
   - Updated quick start to use `make` commands
+
+### Phase 2 (CI/CD): Engineering Automation ✅
+- **GitHub Actions CI** (`.github/workflows/ci.yml`):
+  - 4 parallel jobs: backend, frontend, docker, integration
+  - Backend: Ruff lint + Black format check + pytest unit tests
+  - Frontend: ESLint + TypeScript validation + Next.js production build
+  - Docker: `docker compose config` validation
+  - Integration: PostgreSQL service container + DB connectivity tests (push-only)
+  - Concurrency groups to cancel stale runs
+- **Python Quality Tooling** (`pyproject.toml`):
+  - Ruff: E, F, I, UP, B rules (pycodestyle, pyflakes, isort, pyupgrade, bugbear)
+  - Black: 100-char line length, Python 3.12 target
+  - mypy: lightweight mode (no strict typing enforcement)
+  - pytest: integration marker for DB-dependent tests
+  - Airflow DAGs included in lint scope (production code)
+- **Frontend Validation**:
+  - Added `typecheck` npm script (`tsc --noEmit`)
+  - Fixed ESLint error in theme-toggle (setState in useEffect → lazy initializer)
+  - Zero TypeScript errors, zero ESLint errors
+- **Dependency Hygiene**:
+  - `requirements.txt` — runtime only (removed dbt-postgres, apache-airflow, pytest)
+  - `requirements-dev.txt` — NEW: ruff, black, pytest, mypy
+  - `api/requirements.txt` — unchanged (FastAPI-specific deps)
+  - Clear separation: runtime vs dev vs API vs container-only
+- **Makefile Expansion** (25+ targets, grouped by category):
+  - Code Quality (local): `lint`, `format`, `test-unit`, `frontend-check`, `ci`, `check`
+  - Stack Lifecycle: `up`, `down`, `rebuild`, `clean`
+  - Pipeline: `ingest`, `transform`, `seed`, `test`
+  - Operations: `logs`, `status`, `verify`, `psql`, `shell`, `reset-db`, `airflow`
+  - `make ci` = one-command full validation (lint + test + frontend)
+  - CI and local workflows share the same validation interface
+- **Integration Tests** (`tests/test_integration.py`):
+  - DB connectivity, schema creation, metrics table validation
+  - Marked with `@pytest.mark.integration` — excluded from fast CI
+  - Runs in GitHub Actions with PostgreSQL service container (push-only)
+- **Code Cleanup**:
+  - 15 files reformatted by Black
+  - 39 Ruff issues auto-fixed (import sorting, modern Python idioms)
+  - 3 manual fixes (unused variables, zip strict parameter)
+- **Documentation**:
+  - README: CI/CD section, code quality tooling, dependency structure, local validation guide
+  - README: project structure updated with all new files
+  - README: Makefile reference grouped by category
 
 ## How to Resume
 

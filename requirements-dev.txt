@@ -1,0 +1,8 @@
+# ─── Development & CI Tooling ─────────────────────────────────
+# Install: pip install -r requirements-dev.txt
+# These are NOT required for production runtime.
+
+ruff>=0.4.0
+black>=24.0
+pytest>=8.2
+mypy>=1.10

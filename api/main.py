@@ -1,12 +1,13 @@
 """FastAPI application — read-only API for the data platform dashboard."""
 
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.config import CORS_ORIGINS
-from api.database import init_pool, close_pool, ensure_metrics_table
-from api.routers import pipeline, health, analytics, quality
+from api.database import close_pool, ensure_metrics_table, init_pool
+from api.routers import analytics, health, pipeline, quality
 
 
 @asynccontextmanager

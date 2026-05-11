@@ -6,8 +6,9 @@ Includes graceful error handling for missing tables/schemas.
 """
 
 import logging
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Any, Generator
+from typing import Any
 
 import psycopg2
 import psycopg2.extras

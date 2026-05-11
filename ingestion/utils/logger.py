@@ -1,6 +1,7 @@
 import logging
 import sys
 from logging.handlers import RotatingFileHandler
+
 from config.settings import LOG_DIR, LOG_LEVEL
 
 LOG_DIR.mkdir(parents=True, exist_ok=True)

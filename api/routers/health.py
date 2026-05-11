@@ -1,8 +1,9 @@
 """System health endpoints — freshness, connectivity, last sync."""
 
 from fastapi import APIRouter
+
 from api.database import execute_query, execute_scalar
-from api.schemas import SystemHealth, FreshnessIndicator
+from api.schemas import FreshnessIndicator, SystemHealth
 
 router = APIRouter(prefix="/api/health", tags=["health"])
 
@@ -31,9 +32,16 @@ def get_system_health():
 def get_freshness():
     """Freshness indicators for each raw source table."""
     tables = [
-        "orders", "order_items", "customers", "products", "sellers",
-        "order_payments", "order_reviews",
-        "api_products", "api_users", "api_carts",
+        "orders",
+        "order_items",
+        "customers",
+        "products",
+        "sellers",
+        "order_payments",
+        "order_reviews",
+        "api_products",
+        "api_users",
+        "api_carts",
     ]
     results = []
     for table in tables:
@@ -46,23 +54,29 @@ def get_freshness():
         try:
             rows = execute_query(sql)
             if rows and rows[0]["last_loaded_at"]:
-                results.append({
-                    "source_name": table,
-                    "last_loaded_at": rows[0]["last_loaded_at"],
-                    "hours_since_load": round(rows[0]["hours_since_load"], 1),
-                })
+                results.append(
+                    {
+                        "source_name": table,
+                        "last_loaded_at": rows[0]["last_loaded_at"],
+                        "hours_since_load": round(rows[0]["hours_since_load"], 1),
+                    }
+                )
             else:
-                results.append({
+                results.append(
+                    {
+                        "source_name": table,
+                        "last_loaded_at": None,
+                        "hours_since_load": None,
+                    }
+                )
+        except Exception:
+            results.append(
+                {
                     "source_name": table,
                     "last_loaded_at": None,
                     "hours_since_load": None,
-                })
-        except Exception:
-            results.append({
-                "source_name": table,
-                "last_loaded_at": None,
-                "hours_since_load": None,
-            })
+                }
+            )
     return results
 
 

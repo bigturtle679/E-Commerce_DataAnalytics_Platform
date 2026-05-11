@@ -5,7 +5,8 @@ This replaces `dbt run` for environments where dbt is not compatible
 """
 
 from sqlalchemy import text
-from ingestion.utils.db import get_engine, ensure_schemas
+
+from ingestion.utils.db import ensure_schemas, get_engine
 from ingestion.utils.logger import get_logger
 
 logger = get_logger("dbt_materialize")
@@ -182,9 +183,7 @@ def run():
                 CASE WHEN EXTRACT(dow FROM full_date) IN (0, 6) THEN true ELSE false END AS is_weekend
             FROM date_spine
         """))
-        conn.execute(text(
-            "ALTER TABLE analytics.dim_dates ADD PRIMARY KEY (date_key)"
-        ))
+        conn.execute(text("ALTER TABLE analytics.dim_dates ADD PRIMARY KEY (date_key)"))
         logger.info("Created analytics.dim_dates")
 
         # dim_customers
@@ -219,9 +218,7 @@ def run():
                 true AS is_current
             FROM merged
         """))
-        conn.execute(text(
-            "ALTER TABLE analytics.dim_customers ADD PRIMARY KEY (customer_key)"
-        ))
+        conn.execute(text("ALTER TABLE analytics.dim_customers ADD PRIMARY KEY (customer_key)"))
         logger.info("Created analytics.dim_customers")
 
         # dim_products
@@ -257,9 +254,7 @@ def run():
                 true AS is_current
             FROM merged
         """))
-        conn.execute(text(
-            "ALTER TABLE analytics.dim_products ADD PRIMARY KEY (product_key)"
-        ))
+        conn.execute(text("ALTER TABLE analytics.dim_products ADD PRIMARY KEY (product_key)"))
         logger.info("Created analytics.dim_products")
 
         # dim_sellers
@@ -274,9 +269,7 @@ def run():
                 true AS is_current
             FROM staging.stg_sellers_batch
         """))
-        conn.execute(text(
-            "ALTER TABLE analytics.dim_sellers ADD PRIMARY KEY (seller_key)"
-        ))
+        conn.execute(text("ALTER TABLE analytics.dim_sellers ADD PRIMARY KEY (seller_key)"))
         logger.info("Created analytics.dim_sellers")
 
         # fact_order_items

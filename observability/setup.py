@@ -1,7 +1,9 @@
 """Observability setup — creates SQL views idempotently."""
 
 from pathlib import Path
+
 from sqlalchemy import text
+
 from ingestion.utils.db import get_engine
 from ingestion.utils.logger import get_logger
 

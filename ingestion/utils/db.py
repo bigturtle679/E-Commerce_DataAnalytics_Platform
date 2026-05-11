@@ -1,11 +1,11 @@
 import hashlib
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pandas as pd
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 
-from config.settings import DATABASE_URL, RAW_SCHEMA, STAGING_SCHEMA, ANALYTICS_SCHEMA
+from config.settings import ANALYTICS_SCHEMA, DATABASE_URL, RAW_SCHEMA, STAGING_SCHEMA
 from ingestion.utils.logger import get_logger
 
 logger = get_logger("db")
@@ -41,8 +41,10 @@ def upsert_dataframe(
     full_table = f"{schema}.{table_name}"
 
     df = df.copy()
-    df["_loaded_at"] = datetime.now(timezone.utc)
-    df["_source"] = "batch_csv" if schema == RAW_SCHEMA and "api_" not in table_name else "fakestore_api"
+    df["_loaded_at"] = datetime.now(UTC)
+    df["_source"] = (
+        "batch_csv" if schema == RAW_SCHEMA and "api_" not in table_name else "fakestore_api"
+    )
     if batch_id:
         df["_batch_id"] = batch_id
 
@@ -63,10 +65,12 @@ def upsert_dataframe(
             constraint_name = f"uq_{table_name}_{'_'.join(conflict_columns)}"
             col_list = ", ".join(f'"{c}"' for c in conflict_columns)
             with engine.begin() as conn:
-                conn.execute(text(
-                    f'ALTER TABLE {full_table} ADD CONSTRAINT "{constraint_name}" '
-                    f'UNIQUE ({col_list})'
-                ))
+                conn.execute(
+                    text(
+                        f'ALTER TABLE {full_table} ADD CONSTRAINT "{constraint_name}" '
+                        f"UNIQUE ({col_list})"
+                    )
+                )
         logger.info(f"Created table {full_table}")
 
     if not conflict_columns:
@@ -79,13 +83,11 @@ def upsert_dataframe(
     col_list = ", ".join(f'"{c}"' for c in columns)
     val_placeholders = ", ".join(f":{c}" for c in columns)
     conflict_list = ", ".join(f'"{c}"' for c in conflict_columns)
-    update_set = ", ".join(
-        f'"{c}" = EXCLUDED."{c}"' for c in columns if c not in conflict_columns
-    )
+    update_set = ", ".join(f'"{c}" = EXCLUDED."{c}"' for c in columns if c not in conflict_columns)
 
     upsert_sql = text(
-        f'INSERT INTO {full_table} ({col_list}) VALUES ({val_placeholders}) '
-        f'ON CONFLICT ({conflict_list}) DO UPDATE SET {update_set}'
+        f"INSERT INTO {full_table} ({col_list}) VALUES ({val_placeholders}) "
+        f"ON CONFLICT ({conflict_list}) DO UPDATE SET {update_set}"
     )
 
     records = df.to_dict(orient="records")
@@ -101,9 +103,7 @@ def upsert_dataframe(
     return len(records)
 
 
-def log_ingestion(
-    filename: str, row_count: int, checksum: str, batch_id: str
-) -> None:
+def log_ingestion(filename: str, row_count: int, checksum: str, batch_id: str) -> None:
     engine = get_engine()
     with engine.begin() as conn:
         conn.execute(
@@ -136,11 +136,7 @@ def log_ingestion(
 def get_ingested_checksums() -> set[str]:
     engine = get_engine()
     with engine.begin() as conn:
-        result = conn.execute(
-            text(
-                f"SELECT checksum FROM {RAW_SCHEMA}._ingestion_log"
-            )
-        )
+        result = conn.execute(text(f"SELECT checksum FROM {RAW_SCHEMA}._ingestion_log"))
         return {row[0] for row in result}
 
 

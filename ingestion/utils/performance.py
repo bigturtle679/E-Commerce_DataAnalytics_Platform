@@ -6,9 +6,9 @@ Creates indexes on foreign keys, timestamps, and high-cardinality lookup columns
 
 from sqlalchemy import text
 
+from config.settings import ANALYTICS_SCHEMA, RAW_SCHEMA
 from ingestion.utils.db import get_engine
 from ingestion.utils.logger import get_logger
-from config.settings import ANALYTICS_SCHEMA, RAW_SCHEMA
 
 logger = get_logger("performance")
 
@@ -16,35 +16,32 @@ logger = get_logger("performance")
 # Format: (schema, table, index_name, column_expression)
 INDEXES = [
     # Analytics — fact_order_items foreign keys
-    (ANALYTICS_SCHEMA, "fact_order_items", "idx_foi_customer_key",    "customer_key"),
-    (ANALYTICS_SCHEMA, "fact_order_items", "idx_foi_product_key",     "product_key"),
-    (ANALYTICS_SCHEMA, "fact_order_items", "idx_foi_seller_key",      "seller_key"),
-    (ANALYTICS_SCHEMA, "fact_order_items", "idx_foi_order_date_key",  "order_date_key"),
-    (ANALYTICS_SCHEMA, "fact_order_items", "idx_foi_order_id",        "order_id"),
-    (ANALYTICS_SCHEMA, "fact_order_items", "idx_foi_loaded_at",       "_loaded_at"),
-
+    (ANALYTICS_SCHEMA, "fact_order_items", "idx_foi_customer_key", "customer_key"),
+    (ANALYTICS_SCHEMA, "fact_order_items", "idx_foi_product_key", "product_key"),
+    (ANALYTICS_SCHEMA, "fact_order_items", "idx_foi_seller_key", "seller_key"),
+    (ANALYTICS_SCHEMA, "fact_order_items", "idx_foi_order_date_key", "order_date_key"),
+    (ANALYTICS_SCHEMA, "fact_order_items", "idx_foi_order_id", "order_id"),
+    (ANALYTICS_SCHEMA, "fact_order_items", "idx_foi_loaded_at", "_loaded_at"),
     # Analytics — fact_order_payments foreign keys
-    (ANALYTICS_SCHEMA, "fact_order_payments", "idx_fop_customer_key",    "customer_key"),
-    (ANALYTICS_SCHEMA, "fact_order_payments", "idx_fop_order_date_key",  "order_date_key"),
-    (ANALYTICS_SCHEMA, "fact_order_payments", "idx_fop_order_id",        "order_id"),
-    (ANALYTICS_SCHEMA, "fact_order_payments", "idx_fop_loaded_at",       "_loaded_at"),
-    (ANALYTICS_SCHEMA, "fact_order_payments", "idx_fop_payment_type",    "payment_type"),
-
+    (ANALYTICS_SCHEMA, "fact_order_payments", "idx_fop_customer_key", "customer_key"),
+    (ANALYTICS_SCHEMA, "fact_order_payments", "idx_fop_order_date_key", "order_date_key"),
+    (ANALYTICS_SCHEMA, "fact_order_payments", "idx_fop_order_id", "order_id"),
+    (ANALYTICS_SCHEMA, "fact_order_payments", "idx_fop_loaded_at", "_loaded_at"),
+    (ANALYTICS_SCHEMA, "fact_order_payments", "idx_fop_payment_type", "payment_type"),
     # Analytics — dimension lookups
-    (ANALYTICS_SCHEMA, "dim_customers", "idx_dc_customer_id",   "customer_id"),
-    (ANALYTICS_SCHEMA, "dim_customers", "idx_dc_is_current",    "is_current"),
-    (ANALYTICS_SCHEMA, "dim_products",  "idx_dp_product_id",    "product_id"),
-    (ANALYTICS_SCHEMA, "dim_products",  "idx_dp_is_current",    "is_current"),
-    (ANALYTICS_SCHEMA, "dim_sellers",   "idx_ds_seller_id",     "seller_id"),
-    (ANALYTICS_SCHEMA, "dim_dates",     "idx_dd_full_date",     "full_date"),
-
+    (ANALYTICS_SCHEMA, "dim_customers", "idx_dc_customer_id", "customer_id"),
+    (ANALYTICS_SCHEMA, "dim_customers", "idx_dc_is_current", "is_current"),
+    (ANALYTICS_SCHEMA, "dim_products", "idx_dp_product_id", "product_id"),
+    (ANALYTICS_SCHEMA, "dim_products", "idx_dp_is_current", "is_current"),
+    (ANALYTICS_SCHEMA, "dim_sellers", "idx_ds_seller_id", "seller_id"),
+    (ANALYTICS_SCHEMA, "dim_dates", "idx_dd_full_date", "full_date"),
     # Raw — timestamp columns for incremental lookups
-    (RAW_SCHEMA, "orders",          "idx_raw_orders_loaded_at",      "_loaded_at"),
-    (RAW_SCHEMA, "order_items",     "idx_raw_oi_loaded_at",          "_loaded_at"),
-    (RAW_SCHEMA, "order_payments",  "idx_raw_op_loaded_at",          "_loaded_at"),
-    (RAW_SCHEMA, "api_products",    "idx_raw_api_prod_loaded_at",    "_loaded_at"),
-    (RAW_SCHEMA, "api_users",       "idx_raw_api_users_loaded_at",   "_loaded_at"),
-    (RAW_SCHEMA, "api_carts",       "idx_raw_api_carts_loaded_at",   "_loaded_at"),
+    (RAW_SCHEMA, "orders", "idx_raw_orders_loaded_at", "_loaded_at"),
+    (RAW_SCHEMA, "order_items", "idx_raw_oi_loaded_at", "_loaded_at"),
+    (RAW_SCHEMA, "order_payments", "idx_raw_op_loaded_at", "_loaded_at"),
+    (RAW_SCHEMA, "api_products", "idx_raw_api_prod_loaded_at", "_loaded_at"),
+    (RAW_SCHEMA, "api_users", "idx_raw_api_users_loaded_at", "_loaded_at"),
+    (RAW_SCHEMA, "api_carts", "idx_raw_api_carts_loaded_at", "_loaded_at"),
 ]
 
 

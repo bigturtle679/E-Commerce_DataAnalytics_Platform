@@ -5,10 +5,14 @@ and avoid heavy client-side computation.
 """
 
 from fastapi import APIRouter, Query
+
 from api.database import execute_query
 from api.schemas import (
-    RevenueDataPoint, TopProduct, CustomerTrend,
-    OrderGrowth, GeoDistribution,
+    CustomerTrend,
+    GeoDistribution,
+    OrderGrowth,
+    RevenueDataPoint,
+    TopProduct,
 )
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])

@@ -10,14 +10,17 @@ import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
+
+from airflow import DAG
 
 # Add project root to path for imports
 # PROJECT_ROOT env var is set in docker-compose for container compatibility;
 # falls back to directory traversal for local development.
-PROJECT_ROOT = Path(os.environ.get("PROJECT_ROOT", str(Path(__file__).resolve().parent.parent.parent)))
+PROJECT_ROOT = Path(
+    os.environ.get("PROJECT_ROOT", str(Path(__file__).resolve().parent.parent.parent))
+)
 sys.path.insert(0, str(PROJECT_ROOT))
 
 DBT_PROJECT_DIR = PROJECT_ROOT / "dbt_project"
@@ -47,34 +50,40 @@ dag = DAG(
 
 def _create_schemas():
     from ingestion.utils.db import ensure_schemas
+
     ensure_schemas()
 
 
 def _run_batch_ingestion():
     from ingestion.batch.ingest_csv import run_batch_ingestion
+
     run_batch_ingestion()
 
 
 def _ingest_api_products():
     from ingestion.api.fakestore_client import FakeStoreClient
     from ingestion.api.ingest_api import ingest_products
+
     ingest_products(FakeStoreClient())
 
 
 def _ingest_api_users():
     from ingestion.api.fakestore_client import FakeStoreClient
     from ingestion.api.ingest_api import ingest_users
+
     ingest_users(FakeStoreClient())
 
 
 def _ingest_api_carts():
     from ingestion.api.fakestore_client import FakeStoreClient
     from ingestion.api.ingest_api import ingest_carts
+
     ingest_carts(FakeStoreClient())
 
 
 def _create_indexes():
     from ingestion.utils.performance import create_indexes
+
     create_indexes()
 
 
@@ -113,8 +122,7 @@ ingest_api_carts = PythonOperator(
 dbt_run_staging = BashOperator(
     task_id="dbt_run_staging",
     bash_command=(
-        f"cd {DBT_PROJECT_DIR} && "
-        f"dbt run --select staging --profiles-dir {DBT_PROFILES_DIR}"
+        f"cd {DBT_PROJECT_DIR} && " f"dbt run --select staging --profiles-dir {DBT_PROFILES_DIR}"
     ),
     dag=dag,
 )
@@ -122,18 +130,14 @@ dbt_run_staging = BashOperator(
 dbt_run_analytics = BashOperator(
     task_id="dbt_run_analytics",
     bash_command=(
-        f"cd {DBT_PROJECT_DIR} && "
-        f"dbt run --select analytics --profiles-dir {DBT_PROFILES_DIR}"
+        f"cd {DBT_PROJECT_DIR} && " f"dbt run --select analytics --profiles-dir {DBT_PROFILES_DIR}"
     ),
     dag=dag,
 )
 
 dbt_test = BashOperator(
     task_id="dbt_test",
-    bash_command=(
-        f"cd {DBT_PROJECT_DIR} && "
-        f"dbt test --profiles-dir {DBT_PROFILES_DIR}"
-    ),
+    bash_command=(f"cd {DBT_PROJECT_DIR} && " f"dbt test --profiles-dir {DBT_PROFILES_DIR}"),
     dag=dag,
 )
 
@@ -146,8 +150,7 @@ create_indexes = PythonOperator(
 dbt_source_freshness = BashOperator(
     task_id="dbt_source_freshness",
     bash_command=(
-        f"cd {DBT_PROJECT_DIR} && "
-        f"dbt source freshness --profiles-dir {DBT_PROFILES_DIR}"
+        f"cd {DBT_PROJECT_DIR} && " f"dbt source freshness --profiles-dir {DBT_PROFILES_DIR}"
     ),
     dag=dag,
 )

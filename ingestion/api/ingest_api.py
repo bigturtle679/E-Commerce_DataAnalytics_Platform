@@ -4,7 +4,6 @@ Emits pipeline metrics for observability.
 """
 
 import json
-import uuid
 
 import pandas as pd
 
@@ -21,16 +20,18 @@ def _flatten_products(products: list[dict]) -> pd.DataFrame:
     rows = []
     for p in products:
         rating = p.get("rating", {})
-        rows.append({
-            "id": int(p["id"]),
-            "title": str(p.get("title", "")),
-            "price": float(p.get("price", 0)),
-            "description": str(p.get("description", "")),
-            "category": str(p.get("category", "")),
-            "image": str(p.get("image", "")),
-            "rating_rate": float(rating.get("rate", 0)),
-            "rating_count": int(rating.get("count", 0)),
-        })
+        rows.append(
+            {
+                "id": int(p["id"]),
+                "title": str(p.get("title", "")),
+                "price": float(p.get("price", 0)),
+                "description": str(p.get("description", "")),
+                "category": str(p.get("category", "")),
+                "image": str(p.get("image", "")),
+                "rating_rate": float(rating.get("rate", 0)),
+                "rating_count": int(rating.get("count", 0)),
+            }
+        )
     return pd.DataFrame(rows)
 
 
@@ -39,29 +40,33 @@ def _flatten_users(users: list[dict]) -> pd.DataFrame:
     for u in users:
         name = u.get("name", {})
         address = u.get("address", {})
-        rows.append({
-            "id": int(u["id"]),
-            "email": str(u.get("email", "")),
-            "username": str(u.get("username", "")),
-            "firstname": str(name.get("firstname", "")),
-            "lastname": str(name.get("lastname", "")),
-            "phone": str(u.get("phone", "")),
-            "city": str(address.get("city", "")),
-            "street": str(address.get("street", "")),
-            "zipcode": str(address.get("zipcode", "")),
-        })
+        rows.append(
+            {
+                "id": int(u["id"]),
+                "email": str(u.get("email", "")),
+                "username": str(u.get("username", "")),
+                "firstname": str(name.get("firstname", "")),
+                "lastname": str(name.get("lastname", "")),
+                "phone": str(u.get("phone", "")),
+                "city": str(address.get("city", "")),
+                "street": str(address.get("street", "")),
+                "zipcode": str(address.get("zipcode", "")),
+            }
+        )
     return pd.DataFrame(rows)
 
 
 def _flatten_carts(carts: list[dict]) -> pd.DataFrame:
     rows = []
     for c in carts:
-        rows.append({
-            "id": int(c["id"]),
-            "user_id": int(c.get("userId", 0)),
-            "date": str(c.get("date", "")),
-            "products_json": json.dumps(c.get("products", [])),
-        })
+        rows.append(
+            {
+                "id": int(c["id"]),
+                "user_id": int(c.get("userId", 0)),
+                "date": str(c.get("date", "")),
+                "products_json": json.dumps(c.get("products", [])),
+            }
+        )
     return pd.DataFrame(rows)
 
 

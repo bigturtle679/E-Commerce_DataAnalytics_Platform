@@ -1,0 +1,68 @@
+# ─── E-Commerce Data Platform — Tool Configuration ────────────
+# Ruff (linter) + Black (formatter) configuration.
+# Shared by local development and CI.
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+# Exclude non-project code (dbt SQL templates, frontend, virtualenvs)
+exclude = [
+    ".venv",
+    "venv",
+    "dbt_project",
+    "frontend",
+    "node_modules",
+    ".git",
+    "__pycache__",
+]
+
+[tool.ruff.lint]
+# E = pycodestyle errors
+# F = pyflakes
+# I = isort (import sorting)
+# UP = pyupgrade (modern Python idioms)
+# B = flake8-bugbear (common bugs)
+select = ["E", "F", "I", "UP", "B"]
+
+# Practical ignores — avoid noise
+ignore = [
+    "E501",   # line too long — handled by Black
+    "B008",   # function call in default argument — common in FastAPI (Depends())
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["api", "config", "ingestion", "scripts", "observability"]
+
+[tool.black]
+target-version = ["py312"]
+line-length = 100
+
+# Match Ruff excludes
+exclude = '''
+/(
+    \.venv
+  | venv
+  | dbt_project
+  | frontend
+  | node_modules
+)/
+'''
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false  # Lightweight — don't enforce type annotations everywhere
+ignore_missing_imports = true  # Many data deps lack stubs
+exclude = [
+    "dbt_project/",
+    "frontend/",
+    ".venv/",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: marks tests requiring database connection (deselect with '-m \"not integration\"')",
+]

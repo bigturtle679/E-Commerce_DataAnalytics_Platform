@@ -68,9 +68,7 @@ class FakeStoreClient:
     def _backoff_delay(self, attempt: int) -> float:
         return self.backoff_base * (self.backoff_factor ** (attempt - 1))
 
-    def _paginated_fetch(
-        self, endpoint: str, limit: int = 50, max_pages: int = 100
-    ) -> list[dict]:
+    def _paginated_fetch(self, endpoint: str, limit: int = 50, max_pages: int = 100) -> list[dict]:
         """Generic paginator. FakeStore returns all at once, but this scaffold
         supports offset/limit pagination for future API migrations."""
         all_results = []

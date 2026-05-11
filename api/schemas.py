@@ -1,10 +1,11 @@
 """Pydantic response schemas — fully typed API contracts."""
 
 from datetime import datetime
+
 from pydantic import BaseModel
 
-
 # --- Pipeline ---
+
 
 class PipelineRun(BaseModel):
     id: int
@@ -39,6 +40,7 @@ class ThroughputPoint(BaseModel):
 
 # --- Health ---
 
+
 class SystemHealth(BaseModel):
     pipeline_name: str
     last_completed_at: datetime | None
@@ -55,6 +57,7 @@ class FreshnessIndicator(BaseModel):
 
 
 # --- Analytics ---
+
 
 class RevenueDataPoint(BaseModel):
     period: str
@@ -90,6 +93,7 @@ class GeoDistribution(BaseModel):
 
 
 # --- Data Quality ---
+
 
 class TableRowCount(BaseModel):
     schema_name: str

@@ -1,6 +1,7 @@
 """Pipeline monitoring endpoints — runs, stats, throughput."""
 
 from fastapi import APIRouter, Query
+
 from api.database import execute_query
 from api.schemas import PipelineRun, TaskStats, ThroughputPoint
 

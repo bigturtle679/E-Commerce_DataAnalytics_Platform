@@ -240,10 +240,15 @@ python -m pytest tests/ -v
 ```
 ecommerce-data-platform/
 │
+├── .github/workflows/ci.yml   # GitHub Actions CI pipeline (4 jobs)
 ├── docker-compose.yml          # Full-stack orchestration (6 services)
 ├── Dockerfile.api              # FastAPI container (python:3.12-slim)
 ├── Dockerfile.frontend         # Next.js container (3-stage, standalone)
 ├── Dockerfile.airflow          # Airflow container (official 2.9.3 image)
+├── Makefile                    # Developer CLI (ci, lint, format, up, seed, ...)
+├── pyproject.toml              # Ruff + Black + mypy + pytest config
+├── requirements.txt            # Python runtime dependencies
+├── requirements-dev.txt        # Dev tooling (ruff, black, pytest, mypy)
 ├── .dockerignore               # Docker build context exclusions
 ├── .env.docker                 # Docker environment (service-name networking)
 ├── .env.example                # Local dev environment template
@@ -279,6 +284,7 @@ ecommerce-data-platform/
 │   ├── main.py                 # App with CORS + lifespan management
 │   ├── database.py             # Connection pool + graceful error handling
 │   ├── schemas.py              # Pydantic response models
+│   ├── requirements.txt        # API-specific deps (fastapi, uvicorn)
 │   └── routers/
 │       ├── pipeline.py         # /api/pipeline/* — runs, stats, timeline
 │       ├── health.py           # /api/health/*   — status, freshness, ping
@@ -293,7 +299,10 @@ ecommerce-data-platform/
 ├── airflow/dags/               # Orchestration DAG (10 tasks)
 ├── observability/              # SQL views for metrics
 ├── config/settings.py          # Central .env config loader
-├── tests/                      # Pytest suite
+├── tests/                      # Pytest suite (unit + integration)
+│   ├── test_ingestion.py       # Unit tests (mock-based, no DB)
+│   ├── test_dbt.py             # dbt validation tests
+│   └── test_integration.py     # Integration tests (requires PostgreSQL)
 └── dataset/                    # Olist CSV files (bind-mounted into containers)
 ```
 
@@ -513,23 +522,101 @@ create_schemas
 
 ### Makefile Commands
 
+#### Code Quality (runs locally — no Docker needed)
+
+| Command | Description |
+|---------|-------------|
+| `make lint` | Lint Python code (Ruff + Black `--check`) |
+| `make format` | Auto-format Python code (Black + Ruff `--fix`) |
+| `make test-unit` | Run unit tests (no database required) |
+| `make frontend-check` | Validate frontend (ESLint + TypeScript + build) |
+| `make ci` | Full CI validation — lint + test + frontend |
+| `make check` | Alias for `make ci` |
+
+#### Stack Lifecycle (Docker)
+
 | Command | Description |
 |---------|-------------|
 | `make up` | Start core stack (postgres + api + frontend) |
 | `make down` | Stop all services (preserves data) |
 | `make rebuild` | Force rebuild all images and restart |
 | `make clean` | Stop + remove all data volumes |
-| `make logs` | Tail logs for all services |
+
+#### Pipeline Operations (Docker)
+
+| Command | Description |
+|---------|-------------|
 | `make ingest` | Run batch CSV + API ingestion |
 | `make transform` | Materialize models + create indexes |
 | `make seed` | Full pipeline: ingest + transform |
-| `make airflow` | Start Airflow (scheduler + webserver) |
-| `make test` | Run Python test suite |
-| `make lint` | Run linting |
+| `make test` | Run full test suite in Docker |
+
+#### Operations
+
+| Command | Description |
+|---------|-------------|
+| `make logs` | Tail logs for all services |
 | `make status` | Show service health |
 | `make verify` | Verify all services are accessible |
 | `make psql` | Open PostgreSQL shell |
 | `make shell` | Open bash in API container |
+| `make reset-db` | Reset database (drop + recreate volume) |
+| `make airflow` | Start Airflow (scheduler + webserver) |
+
+### Local Validation
+
+One command validates everything before push:
+
+```bash
+make ci
+```
+
+This runs:
+1. **Ruff** — Python linting (E/F/I/UP/B rules)
+2. **Black** — Format verification
+3. **pytest** — Unit tests (mock-based, no DB)
+4. **ESLint** — Frontend linting (core-web-vitals + TypeScript)
+5. **tsc** — TypeScript type checking
+6. **next build** — Production build verification
+
+---
+
+## 🔄 CI/CD
+
+### GitHub Actions Workflow
+
+The repository is continuously validated via GitHub Actions (`ci.yml`).
+
+| Job | Trigger | What It Validates |
+|-----|---------|-------------------|
+| **Backend** | push + PR | Ruff lint, Black format, pytest unit tests |
+| **Frontend** | push + PR | ESLint, TypeScript, Next.js production build |
+| **Docker** | push + PR | `docker compose config` validation |
+| **Integration** | push only | PostgreSQL connectivity, schema creation (real DB) |
+
+**Design philosophy:**
+- CI mirrors local `make ci` — same tools, same interface
+- Default CI is fast (~90s) — integration tests are separate
+- Concurrency groups cancel stale runs on force-push
+
+### Code Quality Tooling
+
+| Tool | Purpose | Config |
+|------|---------|--------|
+| **Ruff** | Python linting (E, F, I, UP, B rules) | `pyproject.toml` |
+| **Black** | Python formatting (100 char line length) | `pyproject.toml` |
+| **ESLint** | Frontend linting (core-web-vitals + TypeScript) | `eslint.config.mjs` |
+| **TypeScript** | Type checking (`strict: true`) | `tsconfig.json` |
+| **mypy** | Optional Python type checking (lightweight mode) | `pyproject.toml` |
+
+### Dependency Structure
+
+| File | Purpose | Used By |
+|------|---------|---------|
+| `requirements.txt` | Python runtime deps (pandas, sqlalchemy, etc.) | `Dockerfile.api`, local dev |
+| `requirements-dev.txt` | Dev tooling (ruff, black, pytest, mypy) | CI, local dev |
+| `api/requirements.txt` | FastAPI + API-specific deps | `Dockerfile.api` |
+| `frontend/package.json` | Node.js deps | `Dockerfile.frontend`, local dev |
 
 ### Compose Profiles
 

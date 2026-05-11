@@ -5,15 +5,15 @@ Stores metrics in raw._pipeline_metrics table.
 """
 
 import time
+from collections.abc import Generator
 from contextlib import contextmanager
-from datetime import datetime, timezone
-from typing import Generator
+from datetime import UTC, datetime
 
 from sqlalchemy import text
 
+from config.settings import RAW_SCHEMA
 from ingestion.utils.db import get_engine
 from ingestion.utils.logger import get_logger
-from config.settings import RAW_SCHEMA
 
 logger = get_logger("metrics")
 
@@ -54,7 +54,7 @@ def record_metric(
     """Insert a single metric row into the pipeline_metrics table."""
     _ensure_metrics_table()
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     started = started_at or now
     completed = completed_at or now
 
@@ -86,9 +86,7 @@ def record_metric(
 
 
 @contextmanager
-def track_pipeline(
-    pipeline_name: str, task_name: str
-) -> Generator[dict, None, None]:
+def track_pipeline(pipeline_name: str, task_name: str) -> Generator[dict, None, None]:
     """Context manager that auto-records timing and status.
 
     Usage:
@@ -98,7 +96,7 @@ def track_pipeline(
     """
     ctx: dict = {"rows_processed": 0}
     start = time.monotonic()
-    started_at = datetime.now(timezone.utc)
+    started_at = datetime.now(UTC)
     try:
         yield ctx
         duration = time.monotonic() - start
@@ -109,7 +107,7 @@ def track_pipeline(
             rows_processed=ctx.get("rows_processed", 0),
             duration_sec=duration,
             started_at=started_at,
-            completed_at=datetime.now(timezone.utc),
+            completed_at=datetime.now(UTC),
         )
     except Exception as e:
         duration = time.monotonic() - start
@@ -121,6 +119,6 @@ def track_pipeline(
             duration_sec=duration,
             error_message=str(e)[:500],
             started_at=started_at,
-            completed_at=datetime.now(timezone.utc),
+            completed_at=datetime.now(UTC),
         )
         raise

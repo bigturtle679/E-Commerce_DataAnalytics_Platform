@@ -1,9 +1,8 @@
 """Ingestion pipeline tests."""
 
-import os
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pandas as pd
 import pytest
@@ -33,7 +32,7 @@ class TestCSVSchemaValidation:
         return Path(__file__).resolve().parent.parent.parent / "dataset"
 
     def test_csv_files_exist(self, dataset_path):
-        for table, filename in CSV_FILE_MAP.items():
+        for _table, filename in CSV_FILE_MAP.items():
             filepath = dataset_path / filename
             assert filepath.exists(), f"Missing CSV: {filename}"
 
@@ -60,11 +59,12 @@ class TestCSVSchemaValidation:
 class TestAPIClientConfig:
     def test_retry_config_loaded(self):
         from config.settings import (
-            API_RETRY_MAX_ATTEMPTS,
+            API_REQUEST_TIMEOUT,
             API_RETRY_BACKOFF_BASE,
             API_RETRY_BACKOFF_FACTOR,
-            API_REQUEST_TIMEOUT,
+            API_RETRY_MAX_ATTEMPTS,
         )
+
         assert API_RETRY_MAX_ATTEMPTS >= 1
         assert API_RETRY_BACKOFF_BASE >= 0
         assert API_RETRY_BACKOFF_FACTOR >= 1
@@ -72,6 +72,7 @@ class TestAPIClientConfig:
 
     def test_api_base_url_set(self):
         from config.settings import FAKESTORE_API_BASE_URL
+
         assert FAKESTORE_API_BASE_URL.startswith("http")
 
 
@@ -90,6 +91,7 @@ class TestAPIResponseShape:
             }
         ]
         from ingestion.api.ingest_api import _flatten_products
+
         df = _flatten_products(mock_request.return_value)
         assert "id" in df.columns
         assert "rating_rate" in df.columns
@@ -108,6 +110,7 @@ class TestAPIResponseShape:
             }
         ]
         from ingestion.api.ingest_api import _flatten_users
+
         df = _flatten_users(mock_request.return_value)
         assert "firstname" in df.columns
         assert "city" in df.columns
@@ -117,5 +120,6 @@ class TestAPIResponseShape:
 class TestDatabaseConfig:
     def test_database_url_format(self):
         from config.settings import DATABASE_URL
+
         assert DATABASE_URL.startswith("postgresql://")
         assert "@" in DATABASE_URL

@@ -7,12 +7,11 @@ Checks PostgreSQL, API, and Frontend readiness with retries.
 Exit code 0 = all healthy, 1 = something failed.
 """
 
+import socket
 import sys
 import time
-import urllib.request
 import urllib.error
-import socket
-
+import urllib.request
 
 CHECKS = [
     {
@@ -52,7 +51,7 @@ def check_tcp(host: str, port: int, timeout: float = 2.0) -> bool:
         sock = socket.create_connection((host, port), timeout=timeout)
         sock.close()
         return True
-    except (socket.timeout, ConnectionRefusedError, OSError):
+    except (TimeoutError, ConnectionRefusedError, OSError):
         return False
 
 
@@ -74,7 +73,7 @@ def verify_service(check: dict) -> bool:
 
     print(f"  {CYAN}⏳ {name}{NC} — waiting...", end="", flush=True)
 
-    for attempt in range(1, retries + 1):
+    for _attempt in range(1, retries + 1):
         if check["type"] == "tcp":
             ok = check_tcp(check["host"], check["port"])
         else:
@@ -106,7 +105,7 @@ def main():
         print()
         return 0
     else:
-        failed = [c["name"] for c, r in zip(CHECKS, results) if not r]
+        failed = [c["name"] for c, r in zip(CHECKS, results, strict=False) if not r]
         print(f"  {RED}✗ Failed: {', '.join(failed)}{NC}")
         print(f"  {YELLOW}  Run 'make logs' to inspect.{NC}")
         print()

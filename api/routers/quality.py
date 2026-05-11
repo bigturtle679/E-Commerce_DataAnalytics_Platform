@@ -1,8 +1,9 @@
 """Data quality endpoints — row counts, freshness, anomaly detection."""
 
 from fastapi import APIRouter
+
 from api.database import execute_query
-from api.schemas import TableRowCount, QualitySummary
+from api.schemas import QualitySummary, TableRowCount
 
 router = APIRouter(prefix="/api/quality", tags=["quality"])
 
@@ -34,34 +35,37 @@ def get_row_counts():
     for schema, table in _MONITORED_TABLES:
         try:
             rows = execute_query(
-                f"SELECT COUNT(*) AS cnt, MAX(_loaded_at) AS last_loaded "
-                f"FROM {schema}.{table}"
+                f"SELECT COUNT(*) AS cnt, MAX(_loaded_at) AS last_loaded " f"FROM {schema}.{table}"
             )
-            results.append({
-                "schema_name": schema,
-                "table_name": table,
-                "row_count": rows[0]["cnt"] if rows else 0,
-                "last_loaded_at": rows[0]["last_loaded"] if rows else None,
-            })
-        except Exception:
-            # Table may not have _loaded_at (e.g. dim_dates)
-            try:
-                rows = execute_query(
-                    f"SELECT COUNT(*) AS cnt FROM {schema}.{table}"
-                )
-                results.append({
+            results.append(
+                {
                     "schema_name": schema,
                     "table_name": table,
                     "row_count": rows[0]["cnt"] if rows else 0,
-                    "last_loaded_at": None,
-                })
+                    "last_loaded_at": rows[0]["last_loaded"] if rows else None,
+                }
+            )
+        except Exception:
+            # Table may not have _loaded_at (e.g. dim_dates)
+            try:
+                rows = execute_query(f"SELECT COUNT(*) AS cnt FROM {schema}.{table}")
+                results.append(
+                    {
+                        "schema_name": schema,
+                        "table_name": table,
+                        "row_count": rows[0]["cnt"] if rows else 0,
+                        "last_loaded_at": None,
+                    }
+                )
             except Exception:
-                results.append({
-                    "schema_name": schema,
-                    "table_name": table,
-                    "row_count": 0,
-                    "last_loaded_at": None,
-                })
+                results.append(
+                    {
+                        "schema_name": schema,
+                        "table_name": table,
+                        "row_count": 0,
+                        "last_loaded_at": None,
+                    }
+                )
     return results
 
 
@@ -110,20 +114,25 @@ def get_freshness_details():
     """Detailed freshness status per source table."""
     results = []
     raw_tables = [
-        "orders", "order_items", "customers", "products", "sellers",
-        "order_payments", "order_reviews",
-        "api_products", "api_users", "api_carts",
+        "orders",
+        "order_items",
+        "customers",
+        "products",
+        "sellers",
+        "order_payments",
+        "order_reviews",
+        "api_products",
+        "api_users",
+        "api_carts",
     ]
     for table in raw_tables:
         try:
-            rows = execute_query(
-                f"""
+            rows = execute_query(f"""
                 SELECT
                     MAX(_loaded_at) AS last_loaded_at,
                     EXTRACT(EPOCH FROM (NOW() - MAX(_loaded_at))) / 3600.0 AS hours_ago
                 FROM raw.{table}
-                """
-            )
+                """)
             r = rows[0] if rows else {}
             hours = r.get("hours_ago")
             status = "unknown"
@@ -134,17 +143,21 @@ def get_freshness_details():
                     status = "warn"
                 else:
                     status = "error"
-            results.append({
-                "table": table,
-                "last_loaded_at": r.get("last_loaded_at"),
-                "hours_ago": round(hours, 1) if hours else None,
-                "status": status,
-            })
+            results.append(
+                {
+                    "table": table,
+                    "last_loaded_at": r.get("last_loaded_at"),
+                    "hours_ago": round(hours, 1) if hours else None,
+                    "status": status,
+                }
+            )
         except Exception:
-            results.append({
-                "table": table,
-                "last_loaded_at": None,
-                "hours_ago": None,
-                "status": "unknown",
-            })
+            results.append(
+                {
+                    "table": table,
+                    "last_loaded_at": None,
+                    "hours_ago": None,
+                    "status": "unknown",
+                }
+            )
     return results
