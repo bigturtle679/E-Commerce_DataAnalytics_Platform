@@ -19,7 +19,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="E-Commerce Data Platform API",
+    title="Meridian API",
     version="1.0.0",
     description="Read-only API for pipeline observability and analytics",
     lifespan=lifespan,
@@ -41,4 +41,4 @@ app.include_router(quality.router)
 
 @app.get("/")
 def root():
-    return {"service": "ecommerce-data-platform-api", "version": "1.0.0"}
+    return {"service": "meridian-api", "version": "1.0.0"}

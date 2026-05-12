@@ -1,5 +1,7 @@
+# ─── API-Specific Dependencies ────────────────────────────────
+# Runtime deps (pandas, sqlalchemy, psycopg2) come from root requirements.txt.
+# This file contains only FastAPI/API-layer packages.
+
 fastapi==0.115.0
 uvicorn==0.30.6
-psycopg2-binary==2.9.9
-python-dotenv==1.0.1
 pydantic==2.9.2

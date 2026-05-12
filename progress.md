@@ -1,6 +1,6 @@
 # Progress Tracker
 
-> Last updated: 2026-05-11
+> Last updated: 2026-05-12
 
 ## Completed Components
 
@@ -332,6 +332,50 @@
   - README: CI/CD section, code quality tooling, dependency structure, local validation guide
   - README: project structure updated with all new files
   - README: Makefile reference grouped by category
+
+### Phase 2.1 (CI/CD): Final Hardening ✅
+- **Dependency Boundary Cleanup**:
+  - `api/requirements.txt` — removed duplicated `psycopg2-binary` and `python-dotenv` (already in root)
+  - `Dockerfile.airflow` — replaced inline dep list with `pip install -r requirements.txt` (single source of truth)
+  - `requirements-dev.txt` — added `pre-commit>=3.7`
+- **Docker Build Validation**:
+  - CI now performs actual `docker build` for API and frontend images (not just `--check`)
+  - Catches real build failures (missing deps, COPY errors, multi-stage issues)
+  - No registry pushes — validation only
+- **Pre-Commit Hooks**:
+  - `.pre-commit-config.yaml` — Ruff (lint + auto-fix) + Black (format)
+  - `make precommit` — one-command hook execution
+  - Fast execution, 2 hooks only
+
+### Phase 3: Portfolio & Productization ✅
+- **Project Branding**:
+  - Renamed to "Meridian" — engineering-first, memorable
+  - Tagline: "Production-grade e-commerce data platform — from ingestion to insight"
+  - Updated: sidebar, layout metadata, FastAPI app title, Makefile, docker-compose comment
+- **README Overhaul** (~390 lines, down from 714):
+  - Hero section with shields.io badges + CI badge
+  - Mermaid architecture diagram (system flow)
+  - Mermaid ER diagram (star schema)
+  - Mermaid DAG graph (pipeline flow)
+  - Real dashboard screenshots (4 pages, captured from live stack)
+  - Engineering Highlights table
+  - Tradeoffs & Design Decisions section
+  - Deployment Architecture section (Vercel + Render + Neon + EC2)
+  - Condensed Quick Start, Developer Experience, Project Structure
+- **Dashboard Visual Polish**:
+  - MetricCard: subtle hover border transition, uppercase tracking labels
+  - ChartContainer: hover border transition, conditional title rendering
+  - Pipeline Activity Feed (WOW feature): terminal-style live feed replacing plain table
+  - Feed-in animation CSS for newest entry
+- **Screenshot Pipeline**:
+  - `docs/assets/` directory with 4 real screenshots
+  - overview.png, pipeline.png, analytics.png, quality.png
+  - Captured from live stack with real data
+- **Verification**:
+  - Ruff lint: all checks passed
+  - Black format: all files clean
+  - Frontend build: zero TypeScript errors, zero ESLint errors
+  - Next.js production build: successful (7/7 pages)
 
 ## How to Resume
 

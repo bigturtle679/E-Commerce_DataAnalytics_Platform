@@ -1,4 +1,4 @@
-# ─── E-Commerce Data Platform — Docker Compose ───────────────
+# ─── Meridian — Docker Compose ────────────────────────────────
 # Start core:    docker compose --env-file .env.docker up --build
 # With Airflow:  docker compose --env-file .env.docker --profile airflow up --build
 # Or simply:     make up / make airflow

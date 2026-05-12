@@ -1,4 +1,4 @@
-# ─── E-Commerce Data Platform — Tool Configuration ────────────
+# ─── Meridian — Tool Configuration ─────────────────────────────
 # Ruff (linter) + Black (formatter) configuration.
 # Shared by local development and CI.
 

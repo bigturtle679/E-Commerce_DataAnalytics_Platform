@@ -60,7 +60,7 @@ export function Sidebar() {
             <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
           </svg>
         </div>
-        <span className="text-sm font-semibold tracking-tight">Data Platform</span>
+        <span className="text-sm font-semibold tracking-tight">Meridian</span>
       </div>
 
       {/* Navigation */}
@@ -87,8 +87,8 @@ export function Sidebar() {
 
       {/* Footer */}
       <div className="border-t border-sidebar-border px-5 py-3">
-        <p className="text-[11px] text-muted-foreground">E-Commerce Platform</p>
-        <p className="text-[10px] text-muted-foreground/60">v1.0.0</p>
+        <p className="text-[11px] text-muted-foreground">Meridian</p>
+        <p className="text-[10px] text-muted-foreground/60">Data Platform v1.0</p>
       </div>
     </aside>
   );

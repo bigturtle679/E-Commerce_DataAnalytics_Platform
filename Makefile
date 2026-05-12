@@ -1,4 +1,4 @@
-# ─── E-Commerce Data Platform ─────────────────────────────────
+# ─── Meridian — Data Platform ─────────────────────────────────
 # Developer-friendly Makefile for common operations.
 # Usage: make <target>
 #
@@ -6,7 +6,7 @@
 # Quality commands (lint, format, ci) run locally — no Docker needed.
 
 .PHONY: help up down rebuild logs ingest transform test lint format \
-        ci check test-unit frontend-check reset-db \
+        ci check test-unit frontend-check reset-db precommit \
         api frontend airflow status clean verify psql shell
 
 # ── Config ────────────────────────────────────────────────────
@@ -23,7 +23,7 @@ NC     = \033[0m
 # ── Default ───────────────────────────────────────────────────
 help: ## Show this help
 	@echo ""
-	@echo "$(CYAN)E-Commerce Data Platform$(NC)"
+	@echo "$(CYAN)Meridian — Data Platform$(NC)"
 	@echo "$(CYAN)========================$(NC)"
 	@echo ""
 	@echo "$(YELLOW)Stack Lifecycle$(NC)"
@@ -102,6 +102,11 @@ ci: lint test-unit frontend-check ## Full CI validation (local)
 	@echo "$(GREEN)═══════════════════════════════════════$(NC)"
 
 check: ci ## Alias for 'make ci'
+
+precommit: ## Install and run pre-commit hooks
+	@echo "$(CYAN)▸ Running pre-commit hooks...$(NC)"
+	@pre-commit run --all-files
+	@echo "$(GREEN)✓ Pre-commit checks passed.$(NC)"
 
 # ── Data Pipeline (Docker) ────────────────────────────────────
 ingest: ## Run full ingestion (batch CSVs + API)

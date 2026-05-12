@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "E-Commerce Data Platform",
-  description: "Pipeline observability and analytics dashboard for the e-commerce data platform",
+  title: "Meridian — Data Platform",
+  description: "Production-grade e-commerce data platform — from ingestion to insight",
 };
 
 export default function RootLayout({

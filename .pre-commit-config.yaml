@@ -1,0 +1,16 @@
+# ─── Pre-Commit Hooks ─────────────────────────────────────────
+# Install: pre-commit install
+# Run all: pre-commit run --all-files
+# Config matches pyproject.toml (Ruff + Black settings).
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.8
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+
+  - repo: https://github.com/psf/black
+    rev: 24.4.2
+    hooks:
+      - id: black

@@ -1,5 +1,5 @@
-# ─── E-Commerce Data Platform — CI Pipeline ──────────────────
-# Validates backend, frontend, Docker config on every push/PR.
+# ─── Meridian — CI Pipeline ───────────────────────────────────
+# Validates backend, frontend, Docker builds on every push/PR.
 # Integration tests run separately with a real PostgreSQL instance.
 #
 # Local equivalent: make ci
@@ -60,9 +60,9 @@ jobs:
       - name: Validate frontend
         run: make frontend-check
 
-  # ── Docker Validation ─────────────────────────────────────────
+  # ── Docker Build Validation ────────────────────────────────────
   docker:
-    name: Docker (config validation)
+    name: Docker (build validation)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -73,10 +73,11 @@ jobs:
       - name: Validate compose config
         run: docker compose --env-file .env.docker config --quiet
 
-      - name: Verify Dockerfiles parse
-        run: |
-          docker build --check -f Dockerfile.api . 2>/dev/null || true
-          docker build --check -f Dockerfile.frontend . 2>/dev/null || true
+      - name: Build API image
+        run: docker build -f Dockerfile.api -t meridian-api-ci .
+
+      - name: Build frontend image
+        run: docker build -f Dockerfile.frontend -t meridian-frontend-ci .
 
   # ── Integration Tests (optional, with real PostgreSQL) ────────
   integration:

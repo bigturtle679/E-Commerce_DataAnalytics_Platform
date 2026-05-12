@@ -12,11 +12,14 @@ interface MetricCardProps {
 
 export function MetricCard({ title, value, subtitle, icon, trend, className }: MetricCardProps) {
   return (
-    <Card className={cn("relative overflow-hidden", className)}>
+    <Card className={cn(
+      "relative overflow-hidden transition-colors duration-200 hover:border-primary/20",
+      className
+    )}>
       <CardContent className="p-5">
         <div className="flex items-start justify-between">
           <div className="space-y-1.5">
-            <p className="text-xs font-medium text-muted-foreground">{title}</p>
+            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{title}</p>
             <p className="text-2xl font-bold tracking-tight">{value}</p>
             {subtitle && (
               <p className={cn(

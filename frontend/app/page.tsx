@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api, queryKeys } from "@/lib/api";
 import { formatNumber, formatDuration, formatRelativeTime, formatCurrency } from "@/lib/format";
 import { Header } from "@/components/header";
-import { MetricCard, StatusBadge, ChartContainer } from "@/components/dashboard";
+import { MetricCard, StatusBadge, ChartContainer, ActivityFeed } from "@/components/dashboard";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -16,7 +16,6 @@ import { useMemo } from "react";
 export default function OverviewPage() {
   const healthQ = useQuery({ queryKey: queryKeys.healthStatus, queryFn: api.getHealthStatus });
   const statsQ = useQuery({ queryKey: queryKeys.pipelineStats, queryFn: api.getPipelineStats });
-  const runsQ = useQuery({ queryKey: queryKeys.pipelineRuns, queryFn: () => api.getPipelineRuns(10) });
   const revenueQ = useQuery({ queryKey: queryKeys.analyticsRevenue, queryFn: () => api.getRevenue(12) });
   const qualityQ = useQuery({ queryKey: queryKeys.qualitySummary, queryFn: api.getQualitySummary });
   const freshnessQ = useQuery({ queryKey: queryKeys.healthFreshness, queryFn: api.getHealthFreshness });
@@ -59,7 +58,7 @@ export default function OverviewPage() {
         {/* Metric cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <MetricCard
-            title="Total Pipeline Runs"
+            title="Pipeline Runs"
             value={formatNumber(totalRuns)}
             subtitle={`${totalFailures} failures`}
             trend={totalFailures > 0 ? "down" : "neutral"}
@@ -104,7 +103,7 @@ export default function OverviewPage() {
           />
         </div>
 
-        {/* Charts + Recent runs */}
+        {/* Charts + Activity Feed */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
           {/* Revenue trend */}
           <ChartContainer
@@ -156,40 +155,13 @@ export default function OverviewPage() {
             </ResponsiveContainer>
           </ChartContainer>
 
-          {/* Recent pipeline runs */}
+          {/* Pipeline activity feed */}
           <ChartContainer
-            title="Recent Runs"
-            subtitle="Last 10"
+            title="Pipeline Activity"
+            subtitle="Live feed"
             className="lg:col-span-2"
-            loading={runsQ.isLoading}
-            empty={!runsQ.data?.length}
           >
-            <div className="max-h-[220px] overflow-y-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-xs">Task</TableHead>
-                    <TableHead className="text-xs text-right">Status</TableHead>
-                    <TableHead className="text-xs text-right">Time</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {runsQ.data?.map((run) => (
-                    <TableRow key={run.id}>
-                      <TableCell className="text-xs font-medium py-2">
-                        {run.task_name}
-                      </TableCell>
-                      <TableCell className="text-right py-2">
-                        <StatusBadge status={run.status} />
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground text-right py-2">
-                        {formatRelativeTime(run.started_at)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <ActivityFeed />
           </ChartContainer>
         </div>
 

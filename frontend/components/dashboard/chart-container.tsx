@@ -20,15 +20,20 @@ export function ChartContainer({
   empty,
 }: ChartContainerProps) {
   return (
-    <Card className={cn("overflow-hidden", className)}>
-      <CardHeader className="pb-2 px-5 pt-5">
-        <div className="flex items-baseline justify-between">
-          <CardTitle className="text-sm font-semibold">{title}</CardTitle>
-          {subtitle && (
-            <span className="text-[11px] text-muted-foreground">{subtitle}</span>
-          )}
-        </div>
-      </CardHeader>
+    <Card className={cn(
+      "overflow-hidden transition-colors duration-200 hover:border-primary/15",
+      className
+    )}>
+      {title && (
+        <CardHeader className="pb-2 px-5 pt-5">
+          <div className="flex items-baseline justify-between">
+            <CardTitle className="text-sm font-semibold">{title}</CardTitle>
+            {subtitle && (
+              <span className="text-[11px] text-muted-foreground">{subtitle}</span>
+            )}
+          </div>
+        </CardHeader>
+      )}
       <CardContent className="px-5 pb-5">
         {loading ? (
           <div className="space-y-3">
