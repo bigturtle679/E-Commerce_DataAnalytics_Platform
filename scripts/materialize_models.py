@@ -113,48 +113,41 @@ def run():
 
         logger.info("Staging views (batch) created: 7 views")
 
-        # ── Staging views (API) ───────────────────────────────────
-        logger.info("Creating staging views (API)...")
+        # ── Staging views (enrichment) ────────────────────────────
+        logger.info("Creating staging views (enrichment)...")
 
         conn.execute(text("""
-            CREATE OR REPLACE VIEW staging.stg_products_api AS
+            CREATE OR REPLACE VIEW staging.stg_cep_enrichment AS
             SELECT
-                id::varchar(50)                      AS product_id,
-                COALESCE(category, 'uncategorized')  AS category,
-                COALESCE(title, '')                   AS title,
-                COALESCE(price::numeric(10,2), 0)    AS price,
-                description,
-                image,
+                cep,
+                cep_prefix,
+                COALESCE(localidade, '')  AS city,
+                COALESCE(uf, '')          AS state_code,
+                COALESCE(estado, '')      AS state_name,
+                COALESCE(regiao, '')      AS region,
+                COALESCE(bairro, '')      AS neighborhood,
                 _loaded_at
-            FROM raw.api_products
+            FROM raw.cep_enrichment
+            WHERE valid = true
         """))
 
         conn.execute(text("""
-            CREATE OR REPLACE VIEW staging.stg_users_api AS
+            CREATE OR REPLACE VIEW staging.stg_fx_rates AS
             SELECT
-                id::integer                          AS user_id,
-                COALESCE(username, '')               AS username,
-                email,
-                firstname,
-                lastname,
-                phone,
-                COALESCE(city, '')                   AS city,
-                COALESCE(zipcode, '')                AS zipcode,
+                base_currency,
+                target_currency,
+                rate,
+                fetched_date,
                 _loaded_at
-            FROM raw.api_users
+            FROM raw.fx_rates
         """))
 
-        conn.execute(text("""
-            CREATE OR REPLACE VIEW staging.stg_carts_api AS
-            SELECT
-                id::integer                          AS cart_id,
-                user_id::integer                     AS user_id,
-                date                                 AS cart_date,
-                _loaded_at
-            FROM raw.api_carts
-        """))
+        logger.info("Staging views (enrichment) created: 2 views")
 
-        logger.info("Staging views (API) created: 3 views")
+        # ── Drop old FakeStore views if they exist ────────────────
+        for old_view in ["stg_products_api", "stg_users_api", "stg_carts_api"]:
+            conn.execute(text(f"DROP VIEW IF EXISTS staging.{old_view}"))
+        logger.info("Cleaned up old FakeStore staging views")
 
         # ── Analytics tables ──────────────────────────────────────
         logger.info("Creating analytics tables...")
@@ -186,73 +179,36 @@ def run():
         conn.execute(text("ALTER TABLE analytics.dim_dates ADD PRIMARY KEY (date_key)"))
         logger.info("Created analytics.dim_dates")
 
-        # dim_customers
+        # dim_customers (batch only — FakeStore removed)
         conn.execute(text("DROP TABLE IF EXISTS analytics.dim_customers CASCADE"))
         conn.execute(text("""
             CREATE TABLE analytics.dim_customers AS
-            WITH batch_customers AS (
-                SELECT customer_id, customer_unique_id, city, state, zip_code_prefix,
-                       'olist_batch' AS source
-                FROM staging.stg_customers_batch
-            ),
-            api_customers AS (
-                SELECT
-                    CAST(user_id AS varchar(50)) AS customer_id,
-                    CAST(user_id AS varchar(50)) AS customer_unique_id,
-                    city,
-                    '' AS state,
-                    zipcode AS zip_code_prefix,
-                    'fakestore_api' AS source
-                FROM staging.stg_users_api
-            ),
-            merged AS (
-                SELECT * FROM batch_customers
-                UNION ALL
-                SELECT * FROM api_customers
-            )
             SELECT
                 ROW_NUMBER() OVER (ORDER BY customer_id) AS customer_key,
-                customer_id, customer_unique_id, city, state, zip_code_prefix, source,
+                customer_id, customer_unique_id, city, state, zip_code_prefix,
+                'olist_batch' AS source,
                 NOW() AS valid_from,
                 CAST(NULL AS timestamp) AS valid_to,
                 true AS is_current
-            FROM merged
+            FROM staging.stg_customers_batch
         """))
         conn.execute(text("ALTER TABLE analytics.dim_customers ADD PRIMARY KEY (customer_key)"))
         logger.info("Created analytics.dim_customers")
 
-        # dim_products
+        # dim_products (batch only — FakeStore removed)
         conn.execute(text("DROP TABLE IF EXISTS analytics.dim_products CASCADE"))
         conn.execute(text("""
             CREATE TABLE analytics.dim_products AS
-            WITH batch_products AS (
-                SELECT product_id, category, '' AS title,
-                       CAST(NULL AS numeric(10,2)) AS price,
-                       weight_g, length_cm, height_cm, width_cm,
-                       'olist_batch' AS source
-                FROM staging.stg_products_batch
-            ),
-            api_products AS (
-                SELECT product_id, category, title, price,
-                       CAST(NULL AS numeric(10,2)) AS weight_g,
-                       CAST(NULL AS numeric(10,2)) AS length_cm,
-                       CAST(NULL AS numeric(10,2)) AS height_cm,
-                       CAST(NULL AS numeric(10,2)) AS width_cm,
-                       'fakestore_api' AS source
-                FROM staging.stg_products_api
-            ),
-            merged AS (
-                SELECT * FROM batch_products
-                UNION ALL
-                SELECT * FROM api_products
-            )
             SELECT
                 ROW_NUMBER() OVER (ORDER BY product_id) AS product_key,
-                product_id, category, title, price, weight_g, length_cm, height_cm, width_cm, source,
+                product_id, category, '' AS title,
+                CAST(NULL AS numeric(10,2)) AS price,
+                weight_g, length_cm, height_cm, width_cm,
+                'olist_batch' AS source,
                 NOW() AS valid_from,
                 CAST(NULL AS timestamp) AS valid_to,
                 true AS is_current
-            FROM merged
+            FROM staging.stg_products_batch
         """))
         conn.execute(text("ALTER TABLE analytics.dim_products ADD PRIMARY KEY (product_key)"))
         logger.info("Created analytics.dim_products")
@@ -272,42 +228,153 @@ def run():
         conn.execute(text("ALTER TABLE analytics.dim_sellers ADD PRIMARY KEY (seller_key)"))
         logger.info("Created analytics.dim_sellers")
 
-        # fact_order_items
-        conn.execute(text("DROP TABLE IF EXISTS analytics.fact_order_items CASCADE"))
-        conn.execute(text("""
-            CREATE TABLE analytics.fact_order_items AS
-            WITH customers AS (
-                SELECT customer_key, customer_id FROM analytics.dim_customers WHERE is_current = true
-            ),
-            products AS (
-                SELECT product_key, product_id FROM analytics.dim_products WHERE is_current = true
-            ),
-            sellers AS (
-                SELECT seller_key, seller_id FROM analytics.dim_sellers WHERE is_current = true
-            ),
-            dates AS (
-                SELECT date_key, full_date FROM analytics.dim_dates
+        # dim_geography (new — ViaCEP enrichment)
+        conn.execute(text("DROP TABLE IF EXISTS analytics.dim_geography CASCADE"))
+        # Only create if cep_enrichment data exists
+        cep_exists = conn.execute(text("""
+            SELECT EXISTS (
+                SELECT 1 FROM information_schema.tables
+                WHERE table_schema = 'raw' AND table_name = 'cep_enrichment'
             )
-            SELECT
-                md5(oi.order_id || '-' || CAST(oi.order_item_id AS varchar)) AS order_item_key,
-                COALESCE(c.customer_key, -1)    AS customer_key,
-                COALESCE(p.product_key, -1)     AS product_key,
-                COALESCE(s.seller_key, -1)      AS seller_key,
-                COALESCE(d.date_key, -1)        AS order_date_key,
-                oi.order_id,
-                oi.order_item_id,
-                o.order_status,
-                oi.price,
-                oi.freight_value,
-                oi.price + oi.freight_value     AS total_amount,
-                oi._loaded_at
-            FROM staging.stg_order_items_batch oi
-            INNER JOIN staging.stg_orders_batch o ON oi.order_id = o.order_id
-            LEFT JOIN customers c ON o.customer_id = c.customer_id
-            LEFT JOIN products p ON oi.product_id = p.product_id
-            LEFT JOIN sellers s ON oi.seller_id = s.seller_id
-            LEFT JOIN dates d ON o.order_purchase_timestamp::date = d.full_date
-        """))
+        """)).scalar()
+        if cep_exists:
+            cep_count = conn.execute(
+                text("SELECT COUNT(*) FROM raw.cep_enrichment WHERE valid = true")
+            ).scalar()
+            if cep_count > 0:
+                conn.execute(text("""
+                    CREATE TABLE analytics.dim_geography AS
+                    WITH deduped AS (
+                        SELECT
+                            cep_prefix,
+                            COALESCE(localidade, '') AS city,
+                            COALESCE(uf, '') AS state_code,
+                            COALESCE(estado, '') AS state_name,
+                            COALESCE(regiao, '') AS region,
+                            COALESCE(bairro, '') AS neighborhood,
+                            ROW_NUMBER() OVER (PARTITION BY cep_prefix ORDER BY _loaded_at DESC) AS rn
+                        FROM raw.cep_enrichment
+                        WHERE valid = true
+                    )
+                    SELECT
+                        ROW_NUMBER() OVER (ORDER BY cep_prefix) AS geography_key,
+                        cep_prefix, city, state_code, state_name, region, neighborhood
+                    FROM deduped
+                    WHERE rn = 1
+                """))
+                conn.execute(
+                    text("ALTER TABLE analytics.dim_geography ADD PRIMARY KEY (geography_key)")
+                )
+                logger.info(f"Created analytics.dim_geography ({cep_count} enriched CEPs)")
+            else:
+                logger.info("No CEP enrichment data — skipping dim_geography")
+        else:
+            logger.info("CEP enrichment table not found — skipping dim_geography")
+
+        # fact_order_items (with FX conversion columns)
+        conn.execute(text("DROP TABLE IF EXISTS analytics.fact_order_items CASCADE"))
+
+        # Check if fx_rates table exists and has data
+        fx_exists = conn.execute(text("""
+            SELECT EXISTS (
+                SELECT 1 FROM information_schema.tables
+                WHERE table_schema = 'raw' AND table_name = 'fx_rates'
+            )
+        """)).scalar()
+
+        if fx_exists:
+            fx_count = conn.execute(text("SELECT COUNT(*) FROM raw.fx_rates")).scalar()
+        else:
+            fx_count = 0
+
+        if fx_count > 0:
+            conn.execute(text("""
+                CREATE TABLE analytics.fact_order_items AS
+                WITH customers AS (
+                    SELECT customer_key, customer_id
+                    FROM analytics.dim_customers WHERE is_current = true
+                ),
+                products AS (
+                    SELECT product_key, product_id
+                    FROM analytics.dim_products WHERE is_current = true
+                ),
+                sellers AS (
+                    SELECT seller_key, seller_id
+                    FROM analytics.dim_sellers WHERE is_current = true
+                ),
+                dates AS (
+                    SELECT date_key, full_date FROM analytics.dim_dates
+                ),
+                latest_fx AS (
+                    SELECT target_currency, rate
+                    FROM raw.fx_rates
+                    WHERE base_currency = 'BRL'
+                      AND fetched_date = (SELECT MAX(fetched_date) FROM raw.fx_rates)
+                )
+                SELECT
+                    md5(oi.order_id || '-' || CAST(oi.order_item_id AS varchar)) AS order_item_key,
+                    COALESCE(c.customer_key, -1)    AS customer_key,
+                    COALESCE(p.product_key, -1)     AS product_key,
+                    COALESCE(s.seller_key, -1)      AS seller_key,
+                    COALESCE(d.date_key, -1)        AS order_date_key,
+                    oi.order_id,
+                    oi.order_item_id,
+                    o.order_status,
+                    oi.price,
+                    oi.freight_value,
+                    oi.price + oi.freight_value     AS total_amount,
+                    ROUND((oi.price + oi.freight_value) * COALESCE(fx_usd.rate, 0), 2) AS total_amount_usd,
+                    ROUND((oi.price + oi.freight_value) * COALESCE(fx_eur.rate, 0), 2) AS total_amount_eur,
+                    oi._loaded_at
+                FROM staging.stg_order_items_batch oi
+                INNER JOIN staging.stg_orders_batch o ON oi.order_id = o.order_id
+                LEFT JOIN customers c ON o.customer_id = c.customer_id
+                LEFT JOIN products p ON oi.product_id = p.product_id
+                LEFT JOIN sellers s ON oi.seller_id = s.seller_id
+                LEFT JOIN dates d ON o.order_purchase_timestamp::date = d.full_date
+                LEFT JOIN latest_fx fx_usd ON fx_usd.target_currency = 'USD'
+                LEFT JOIN latest_fx fx_eur ON fx_eur.target_currency = 'EUR'
+            """))
+        else:
+            conn.execute(text("""
+                CREATE TABLE analytics.fact_order_items AS
+                WITH customers AS (
+                    SELECT customer_key, customer_id
+                    FROM analytics.dim_customers WHERE is_current = true
+                ),
+                products AS (
+                    SELECT product_key, product_id
+                    FROM analytics.dim_products WHERE is_current = true
+                ),
+                sellers AS (
+                    SELECT seller_key, seller_id
+                    FROM analytics.dim_sellers WHERE is_current = true
+                ),
+                dates AS (
+                    SELECT date_key, full_date FROM analytics.dim_dates
+                )
+                SELECT
+                    md5(oi.order_id || '-' || CAST(oi.order_item_id AS varchar)) AS order_item_key,
+                    COALESCE(c.customer_key, -1)    AS customer_key,
+                    COALESCE(p.product_key, -1)     AS product_key,
+                    COALESCE(s.seller_key, -1)      AS seller_key,
+                    COALESCE(d.date_key, -1)        AS order_date_key,
+                    oi.order_id,
+                    oi.order_item_id,
+                    o.order_status,
+                    oi.price,
+                    oi.freight_value,
+                    oi.price + oi.freight_value     AS total_amount,
+                    CAST(0 AS numeric(12,2))        AS total_amount_usd,
+                    CAST(0 AS numeric(12,2))        AS total_amount_eur,
+                    oi._loaded_at
+                FROM staging.stg_order_items_batch oi
+                INNER JOIN staging.stg_orders_batch o ON oi.order_id = o.order_id
+                LEFT JOIN customers c ON o.customer_id = c.customer_id
+                LEFT JOIN products p ON oi.product_id = p.product_id
+                LEFT JOIN sellers s ON oi.seller_id = s.seller_id
+                LEFT JOIN dates d ON o.order_purchase_timestamp::date = d.full_date
+            """))
         logger.info("Created analytics.fact_order_items")
 
         # fact_order_payments

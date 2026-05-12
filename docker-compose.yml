@@ -4,8 +4,9 @@
 # Or simply:     make up / make airflow
 #
 # Profiles:
-#   (default)  — postgres + api + frontend
-#   airflow    — adds airflow-init + webserver + scheduler
+#   (default)    — postgres + api + frontend
+#   airflow      — adds airflow-init + webserver + scheduler
+#   monitoring   — adds prometheus + grafana
 
 services:
 
@@ -185,9 +186,59 @@ services:
     networks:
       - platform-net
 
+  # ── Prometheus ──────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ecommerce-prometheus
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    depends_on:
+      api:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - platform-net
+
+  # ── Grafana ────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ecommerce-grafana
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - platform-net
+
 volumes:
   postgres_data:
     name: ecommerce-postgres-data
+  prometheus_data:
+    name: ecommerce-prometheus-data
+  grafana_data:
+    name: ecommerce-grafana-data
   airflow_logs:
     name: ecommerce-airflow-logs
 

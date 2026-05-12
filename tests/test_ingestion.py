@@ -2,7 +2,6 @@
 
 import sys
 from pathlib import Path
-from unittest.mock import patch
 
 import pandas as pd
 import pytest
@@ -58,7 +57,7 @@ class TestCSVSchemaValidation:
             assert len(df) > 0, f"[{table}] CSV is empty"
 
 
-class TestAPIClientConfig:
+class TestEnrichmentConfig:
     def test_retry_config_loaded(self):
         from config.settings import (
             API_REQUEST_TIMEOUT,
@@ -72,51 +71,22 @@ class TestAPIClientConfig:
         assert API_RETRY_BACKOFF_FACTOR >= 1
         assert API_REQUEST_TIMEOUT > 0
 
-    def test_api_base_url_set(self):
-        from config.settings import FAKESTORE_API_BASE_URL
+    def test_viacep_module_importable(self):
+        from ingestion.api.viacep_client import enrich_ceps
 
-        assert FAKESTORE_API_BASE_URL.startswith("http")
+        assert callable(enrich_ceps)
 
+    def test_fx_module_importable(self):
+        from ingestion.api.fx_client import fetch_fx_rates
 
-class TestAPIResponseShape:
-    @patch("ingestion.api.fakestore_client.FakeStoreClient._request_with_retry")
-    def test_flatten_products(self, mock_request):
-        mock_request.return_value = [
-            {
-                "id": 1,
-                "title": "Test",
-                "price": 9.99,
-                "description": "desc",
-                "category": "cat",
-                "image": "url",
-                "rating": {"rate": 4.5, "count": 10},
-            }
-        ]
-        from ingestion.api.ingest_api import _flatten_products
+        assert callable(fetch_fx_rates)
 
-        df = _flatten_products(mock_request.return_value)
-        assert "id" in df.columns
-        assert "rating_rate" in df.columns
-        assert len(df) == 1
+    def test_cep_padding(self):
+        from ingestion.api.viacep_client import _pad_cep
 
-    @patch("ingestion.api.fakestore_client.FakeStoreClient._request_with_retry")
-    def test_flatten_users(self, mock_request):
-        mock_request.return_value = [
-            {
-                "id": 1,
-                "email": "a@b.com",
-                "username": "user1",
-                "name": {"firstname": "John", "lastname": "Doe"},
-                "phone": "123",
-                "address": {"city": "NYC", "street": "5th", "zipcode": "10001"},
-            }
-        ]
-        from ingestion.api.ingest_api import _flatten_users
-
-        df = _flatten_users(mock_request.return_value)
-        assert "firstname" in df.columns
-        assert "city" in df.columns
-        assert len(df) == 1
+        assert _pad_cep("01001") == "01001000"
+        assert _pad_cep("14409") == "14409000"
+        assert _pad_cep("09790") == "09790000"
 
 
 class TestDatabaseConfig:

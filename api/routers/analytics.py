@@ -119,3 +119,39 @@ def get_geo_distribution(limit: int = Query(default=20, ge=1, le=50)):
         LIMIT %(limit)s
     """
     return execute_query(sql, {"limit": limit})
+
+
+@router.get("/fx-rates")
+def get_fx_rates():
+    """Latest FX exchange rates (BRL → USD/EUR)."""
+    sql = """
+        SELECT
+            target_currency,
+            rate,
+            fetched_date
+        FROM raw.fx_rates
+        WHERE base_currency = 'BRL'
+          AND fetched_date = (SELECT MAX(fetched_date) FROM raw.fx_rates)
+        ORDER BY target_currency
+    """
+    return execute_query(sql)
+
+
+@router.get("/revenue-fx")
+def get_revenue_with_fx(months: int = Query(default=12, ge=1, le=60)):
+    """Monthly revenue with USD/EUR conversions."""
+    sql = """
+        SELECT
+            TO_CHAR(d.full_date, 'YYYY-MM') AS period,
+            ROUND(SUM(f.total_amount)::numeric, 2) AS total_revenue_brl,
+            ROUND(SUM(f.total_amount_usd)::numeric, 2) AS total_revenue_usd,
+            ROUND(SUM(f.total_amount_eur)::numeric, 2) AS total_revenue_eur,
+            COUNT(DISTINCT f.order_id) AS order_count
+        FROM analytics.fact_order_items f
+        JOIN analytics.dim_dates d ON f.order_date_key = d.date_key
+        WHERE f.order_date_key != -1
+        GROUP BY TO_CHAR(d.full_date, 'YYYY-MM')
+        ORDER BY period DESC
+        LIMIT %(months)s
+    """
+    return execute_query(sql, {"months": months})

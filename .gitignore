@@ -50,3 +50,5 @@ dataset/
 
 # Temp audit scripts
 _audit_db.py
+_audit.py
+_verify.py

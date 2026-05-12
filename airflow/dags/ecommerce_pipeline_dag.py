@@ -1,7 +1,7 @@
-"""E-commerce data platform pipeline DAG.
+"""Meridian data platform pipeline DAG.
 
 Idempotent DAG with clear task separation:
-  create_schemas → [batch_ingest, api_ingest_*] → dbt_staging → dbt_analytics → dbt_test
+  create_schemas → [batch_ingest, enrichment] → dbt_staging → dbt_analytics → dbt_test
   → create_indexes → dbt_source_freshness
 """
 
@@ -37,14 +37,14 @@ default_args = {
 }
 
 dag = DAG(
-    dag_id="ecommerce_data_pipeline",
+    dag_id="meridian_data_pipeline",
     default_args=default_args,
-    description="End-to-end e-commerce data pipeline: ingest → transform → test → optimize",
+    description="End-to-end data pipeline: ingest → enrich → transform → test → optimize",
     schedule_interval="@daily",
     start_date=datetime(2024, 1, 1),
     catchup=False,
     max_active_runs=1,
-    tags=["ecommerce", "production"],
+    tags=["meridian", "production"],
 )
 
 
@@ -60,25 +60,16 @@ def _run_batch_ingestion():
     run_batch_ingestion()
 
 
-def _ingest_api_products():
-    from ingestion.api.fakestore_client import FakeStoreClient
-    from ingestion.api.ingest_api import ingest_products
+def _run_cep_enrichment():
+    from ingestion.api.viacep_client import run_cep_enrichment
 
-    ingest_products(FakeStoreClient())
-
-
-def _ingest_api_users():
-    from ingestion.api.fakestore_client import FakeStoreClient
-    from ingestion.api.ingest_api import ingest_users
-
-    ingest_users(FakeStoreClient())
+    run_cep_enrichment()
 
 
-def _ingest_api_carts():
-    from ingestion.api.fakestore_client import FakeStoreClient
-    from ingestion.api.ingest_api import ingest_carts
+def _run_fx_enrichment():
+    from ingestion.api.fx_client import run_fx_enrichment
 
-    ingest_carts(FakeStoreClient())
+    run_fx_enrichment()
 
 
 def _create_indexes():
@@ -101,21 +92,15 @@ ingest_batch = PythonOperator(
     dag=dag,
 )
 
-ingest_api_products = PythonOperator(
-    task_id="ingest_api_products",
-    python_callable=_ingest_api_products,
+enrich_cep = PythonOperator(
+    task_id="enrich_cep_geography",
+    python_callable=_run_cep_enrichment,
     dag=dag,
 )
 
-ingest_api_users = PythonOperator(
-    task_id="ingest_api_users",
-    python_callable=_ingest_api_users,
-    dag=dag,
-)
-
-ingest_api_carts = PythonOperator(
-    task_id="ingest_api_carts",
-    python_callable=_ingest_api_carts,
+enrich_fx = PythonOperator(
+    task_id="enrich_fx_rates",
+    python_callable=_run_fx_enrichment,
     dag=dag,
 )
 
@@ -157,10 +142,10 @@ dbt_source_freshness = BashOperator(
 
 # --- Dependencies ---
 # Phase 1: Schema creation
-create_schemas >> [ingest_batch, ingest_api_products, ingest_api_users, ingest_api_carts]
+create_schemas >> [ingest_batch, enrich_cep, enrich_fx]
 
-# Phase 2: Ingestion (parallel batch + API)
-[ingest_batch, ingest_api_products, ingest_api_users, ingest_api_carts] >> dbt_run_staging
+# Phase 2: Ingestion + enrichment (parallel)
+[ingest_batch, enrich_cep, enrich_fx] >> dbt_run_staging
 
 # Phase 3: dbt transformations
 dbt_run_staging >> dbt_run_analytics >> dbt_test

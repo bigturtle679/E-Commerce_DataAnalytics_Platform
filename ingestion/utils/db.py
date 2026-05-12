@@ -43,7 +43,7 @@ def upsert_dataframe(
     df = df.copy()
     df["_loaded_at"] = datetime.now(UTC)
     df["_source"] = (
-        "batch_csv" if schema == RAW_SCHEMA and "api_" not in table_name else "fakestore_api"
+        "batch_csv" if schema == RAW_SCHEMA and "api_" not in table_name else "enrichment_api"
     )
     if batch_id:
         df["_batch_id"] = batch_id

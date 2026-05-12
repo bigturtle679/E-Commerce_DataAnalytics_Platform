@@ -30,3 +30,6 @@ DATABASE_URL = (
 API_HOST = _env("API_HOST", "0.0.0.0")
 API_PORT = _env_int("API_PORT", 8000)
 CORS_ORIGINS = _env("CORS_ORIGINS", "http://localhost:3000").split(",")
+
+# Auth — empty string disables auth (local dev)
+API_KEY = _env("API_KEY", "")

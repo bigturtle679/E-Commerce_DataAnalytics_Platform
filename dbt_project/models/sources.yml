@@ -30,9 +30,9 @@ sources:
         identifier: product_category_translation
         loaded_at_field: "_loaded_at"
         freshness: null  # translation table is static, skip freshness
-      - name: api_products
-        identifier: api_products
-      - name: api_users
-        identifier: api_users
-      - name: api_carts
-        identifier: api_carts
+      - name: cep_enrichment
+        identifier: cep_enrichment
+        description: ViaCEP geographic enrichment (top 1000 CEPs)
+      - name: fx_rates
+        identifier: fx_rates
+        description: BRL exchange rates (USD, EUR)

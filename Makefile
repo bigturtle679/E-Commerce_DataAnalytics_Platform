@@ -5,8 +5,8 @@
 # Requires: Docker, Docker Compose (for stack commands)
 # Quality commands (lint, format, ci) run locally — no Docker needed.
 
-.PHONY: help up down rebuild logs ingest transform test lint format \
-        ci check test-unit frontend-check reset-db precommit \
+.PHONY: help up down rebuild logs ingest enrich transform test lint format \
+        ci check test-unit frontend-check reset-db precommit monitoring \
         api frontend airflow status clean verify psql shell
 
 # ── Config ────────────────────────────────────────────────────
@@ -39,7 +39,7 @@ help: ## Show this help
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-18s$(NC) %s\n", $$1, $$2}'
 	@echo ""
 	@echo "$(YELLOW)Operations$(NC)"
-	@grep -E '^(logs|status|verify|psql|shell|reset-db|airflow):.*?## .*$$' $(MAKEFILE_LIST) | \
+	@grep -E '^(logs|status|verify|psql|shell|reset-db|airflow|monitoring):.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-18s$(NC) %s\n", $$1, $$2}'
 	@echo ""
 
@@ -109,12 +109,17 @@ precommit: ## Install and run pre-commit hooks
 	@echo "$(GREEN)✓ Pre-commit checks passed.$(NC)"
 
 # ── Data Pipeline (Docker) ────────────────────────────────────
-ingest: ## Run full ingestion (batch CSVs + API)
+ingest: ## Run full ingestion (batch CSVs + enrichment APIs)
 	@echo "$(CYAN)▸ Ingesting batch CSVs...$(NC)"
 	$(EXEC_API) python -m ingestion.batch.ingest_csv
-	@echo "$(CYAN)▸ Ingesting FakeStore API...$(NC)"
+	@echo "$(CYAN)▸ Running enrichment (ViaCEP + FX rates)...$(NC)"
 	$(EXEC_API) python -m ingestion.api.ingest_api
 	@echo "$(GREEN)✓ Ingestion complete.$(NC)"
+
+enrich: ## Run enrichment only (ViaCEP + FX rates)
+	@echo "$(CYAN)▸ Running enrichment pipelines...$(NC)"
+	$(EXEC_API) python -m ingestion.api.ingest_api
+	@echo "$(GREEN)✓ Enrichment complete.$(NC)"
 
 transform: ## Run model materialization + indexes
 	@echo "$(CYAN)▸ Materializing staging views + analytics tables...$(NC)"
@@ -155,6 +160,12 @@ airflow: ## Start Airflow services (scheduler + webserver)
 	@echo "$(CYAN)▸ Starting Airflow...$(NC)"
 	$(COMPOSE) --profile airflow up -d --build
 	@echo "$(GREEN)▸ Airflow UI: http://localhost:8080 (admin/admin)$(NC)"
+
+monitoring: ## Start monitoring stack (Prometheus + Grafana)
+	@echo "$(CYAN)▸ Starting monitoring stack...$(NC)"
+	$(COMPOSE) --profile monitoring up -d --build
+	@echo "$(GREEN)▸ Prometheus: http://localhost:9090$(NC)"
+	@echo "$(GREEN)▸ Grafana:    http://localhost:3001 (admin/admin)$(NC)"
 
 # ── Operations ────────────────────────────────────────────────
 status: ## Show service health status

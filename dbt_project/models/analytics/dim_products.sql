@@ -4,6 +4,9 @@
     )
 }}
 
+-- Product dimension — Olist batch products only.
+-- SCD2-ready with valid_from/valid_to/is_current fields.
+
 with batch_products as (
     select
         product_id,
@@ -16,26 +19,6 @@ with batch_products as (
         width_cm,
         'olist_batch' as source
     from {{ ref('stg_products_batch') }}
-),
-
-api_products as (
-    select
-        cast(product_id as varchar(50)) as product_id,
-        category,
-        title,
-        price,
-        cast(null as numeric(10,2)) as weight_g,
-        cast(null as numeric(10,2)) as length_cm,
-        cast(null as numeric(10,2)) as height_cm,
-        cast(null as numeric(10,2)) as width_cm,
-        'fakestore_api' as source
-    from {{ ref('stg_products_api') }}
-),
-
-merged as (
-    select * from batch_products
-    union all
-    select * from api_products
 ),
 
 final as (
@@ -53,7 +36,7 @@ final as (
         now() as valid_from,
         cast(null as timestamp) as valid_to,
         true as is_current
-    from merged
+    from batch_products
 )
 
 select * from final

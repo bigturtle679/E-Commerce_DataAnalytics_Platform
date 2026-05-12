@@ -65,25 +65,23 @@ models:
           - accepted_values:
               values: [1, 2, 3, 4, 5, 0]
 
-  # --- API staging models ---
-  - name: stg_products_api
-    description: Cleaned FakeStore products
+  # --- Enrichment staging models ---
+  - name: stg_cep_enrichment
+    description: ViaCEP geographic enrichment (valid CEPs only)
     columns:
-      - name: product_id
+      - name: cep_prefix
         tests: [not_null, unique]
-
-  - name: stg_users_api
-    description: Cleaned FakeStore users
-    columns:
-      - name: user_id
-        tests: [not_null, unique]
-      - name: email
+      - name: state_code
+        tests: [not_null]
+      - name: city
         tests: [not_null]
 
-  - name: stg_carts_api
-    description: Flattened FakeStore carts (one row per cart-product)
+  - name: stg_fx_rates
+    description: BRL exchange rates (USD, EUR)
     columns:
-      - name: cart_id
+      - name: base_currency
         tests: [not_null]
-      - name: product_id
+      - name: target_currency
+        tests: [not_null]
+      - name: rate
         tests: [not_null]

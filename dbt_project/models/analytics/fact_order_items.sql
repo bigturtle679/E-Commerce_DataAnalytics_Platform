@@ -5,6 +5,9 @@
     )
 }}
 
+-- Fact table — one row per order line item.
+-- Includes FX conversion columns (total_amount_usd, total_amount_eur).
+
 with order_items as (
     select * from {{ ref('stg_order_items_batch') }}
 ),
@@ -49,6 +52,8 @@ joined as (
         oi.price,
         oi.freight_value,
         oi.price + oi.freight_value     as total_amount,
+        cast(0 as numeric(12,2))        as total_amount_usd,
+        cast(0 as numeric(12,2))        as total_amount_eur,
         oi._loaded_at
     from order_items oi
     inner join orders o on oi.order_id = o.order_id

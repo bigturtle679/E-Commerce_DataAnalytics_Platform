@@ -23,7 +23,6 @@ INDEXES = [
     (ANALYTICS_SCHEMA, "fact_order_items", "idx_foi_order_id", "order_id"),
     (ANALYTICS_SCHEMA, "fact_order_items", "idx_foi_loaded_at", "_loaded_at"),
     # Analytics — fact_order_payments foreign keys
-    (ANALYTICS_SCHEMA, "fact_order_payments", "idx_fop_customer_key", "customer_key"),
     (ANALYTICS_SCHEMA, "fact_order_payments", "idx_fop_order_date_key", "order_date_key"),
     (ANALYTICS_SCHEMA, "fact_order_payments", "idx_fop_order_id", "order_id"),
     (ANALYTICS_SCHEMA, "fact_order_payments", "idx_fop_loaded_at", "_loaded_at"),
@@ -31,17 +30,21 @@ INDEXES = [
     # Analytics — dimension lookups
     (ANALYTICS_SCHEMA, "dim_customers", "idx_dc_customer_id", "customer_id"),
     (ANALYTICS_SCHEMA, "dim_customers", "idx_dc_is_current", "is_current"),
+    (ANALYTICS_SCHEMA, "dim_customers", "idx_dc_zip_code", "zip_code_prefix"),
     (ANALYTICS_SCHEMA, "dim_products", "idx_dp_product_id", "product_id"),
     (ANALYTICS_SCHEMA, "dim_products", "idx_dp_is_current", "is_current"),
     (ANALYTICS_SCHEMA, "dim_sellers", "idx_ds_seller_id", "seller_id"),
     (ANALYTICS_SCHEMA, "dim_dates", "idx_dd_full_date", "full_date"),
+    # Analytics — dim_geography
+    (ANALYTICS_SCHEMA, "dim_geography", "idx_geo_cep_prefix", "cep_prefix"),
+    (ANALYTICS_SCHEMA, "dim_geography", "idx_geo_state", "state_code"),
     # Raw — timestamp columns for incremental lookups
     (RAW_SCHEMA, "orders", "idx_raw_orders_loaded_at", "_loaded_at"),
     (RAW_SCHEMA, "order_items", "idx_raw_oi_loaded_at", "_loaded_at"),
     (RAW_SCHEMA, "order_payments", "idx_raw_op_loaded_at", "_loaded_at"),
-    (RAW_SCHEMA, "api_products", "idx_raw_api_prod_loaded_at", "_loaded_at"),
-    (RAW_SCHEMA, "api_users", "idx_raw_api_users_loaded_at", "_loaded_at"),
-    (RAW_SCHEMA, "api_carts", "idx_raw_api_carts_loaded_at", "_loaded_at"),
+    # Raw — enrichment tables
+    (RAW_SCHEMA, "cep_enrichment", "idx_cep_prefix", "cep_prefix"),
+    (RAW_SCHEMA, "fx_rates", "idx_fx_date", "fetched_date"),
 ]
 
 

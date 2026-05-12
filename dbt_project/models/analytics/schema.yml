@@ -2,7 +2,7 @@ version: 2
 
 models:
   - name: dim_customers
-    description: Customer dimension — merged from Olist batch + FakeStore API. SCD2-ready.
+    description: Customer dimension — Olist batch customers. SCD2-ready.
     columns:
       - name: customer_key
         description: Surrogate key for customer dimension
@@ -22,10 +22,13 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['olist_batch', 'fakestore_api']
+              values: ['olist_batch']
+    tests:
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          min_value: 90000
 
   - name: dim_products
-    description: Product dimension — merged from Olist batch + FakeStore API. SCD2-ready.
+    description: Product dimension — Olist batch products. SCD2-ready.
     columns:
       - name: product_key
         description: Surrogate key for product dimension
@@ -43,7 +46,7 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['olist_batch', 'fakestore_api']
+              values: ['olist_batch']
 
   - name: dim_sellers
     description: Seller dimension — Olist batch only. SCD2-ready.
@@ -76,6 +79,30 @@ models:
       - name: month
         tests:
           - not_null
+
+  - name: dim_geography
+    description: Geography dimension — enriched via ViaCEP. One row per CEP prefix.
+    columns:
+      - name: geography_key
+        tests:
+          - not_null
+          - unique
+      - name: cep_prefix
+        tests:
+          - not_null
+          - unique
+      - name: state_code
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: ['AC','AL','AM','AP','BA','CE','DF','ES','GO','MA',
+                          'MG','MS','MT','PA','PB','PE','PI','PR','RJ','RN',
+                          'RO','RR','RS','SC','SE','SP','TO']
+      - name: region
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: ['Norte', 'Nordeste', 'Centro-Oeste', 'Sudeste', 'Sul']
 
   - name: fact_order_items
     description: Fact table — one row per order line item. Incremental.
@@ -124,15 +151,24 @@ models:
       - name: price
         tests:
           - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 50000
       - name: freight_value
         tests:
           - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 5000
       - name: total_amount
         tests:
           - not_null
       - name: order_id
         tests:
           - not_null
+    tests:
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          min_value: 100000
 
   - name: fact_order_payments
     description: Fact table — one row per payment entry. Incremental.
@@ -142,15 +178,6 @@ models:
         tests:
           - not_null
           - unique
-      - name: customer_key
-        description: FK to dim_customers
-        tests:
-          - not_null
-          - relationships:
-              to: ref('dim_customers')
-              field: customer_key
-              config:
-                where: "customer_key != -1"
       - name: order_date_key
         description: FK to dim_dates
         tests:
@@ -163,6 +190,9 @@ models:
       - name: payment_value
         tests:
           - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100000
       - name: payment_type
         tests:
           - not_null
