@@ -25,35 +25,30 @@ function FeedRow({ run, index }: { run: PipelineRun; index: number }) {
         "flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-mono",
         "transition-all duration-200 hover:bg-muted/50",
         isSuccess
-          ? "border border-emerald-500/10 bg-emerald-500/[0.03]"
-          : "border border-red-500/10 bg-red-500/[0.03]",
+          ? "border border-success/10 bg-success/[0.03]"
+          : "border border-destructive/10 bg-destructive/[0.03]",
       )}
     >
-      {/* Timestamp */}
       <span className="text-muted-foreground shrink-0 w-12 tabular-nums">
         {formatTime(run.started_at)}
       </span>
 
-      {/* Status indicator */}
       <span className={cn(
         "shrink-0 w-1.5 h-1.5 rounded-full",
-        isSuccess ? "bg-emerald-400" : "bg-red-400",
+        isSuccess ? "bg-success" : "bg-destructive",
       )} />
 
-      {/* Task name */}
       <span className="text-foreground truncate flex-1">
         {run.task_name}
       </span>
 
-      {/* Status label */}
       <span className={cn(
         "shrink-0 text-[10px] font-semibold uppercase tracking-wider",
-        isSuccess ? "text-emerald-400" : "text-red-400",
+        isSuccess ? "text-success" : "text-destructive",
       )}>
         {run.status}
       </span>
 
-      {/* Row count */}
       {run.rows_processed > 0 && (
         <span className="text-muted-foreground shrink-0 tabular-nums">
           {formatNumber(run.rows_processed)} rows
@@ -63,14 +58,10 @@ function FeedRow({ run, index }: { run: PipelineRun; index: number }) {
   );
 }
 
-/** Ambient telemetry animation when feed is idle */
 function IdleTelemetry() {
   return (
     <div className="relative h-[220px] overflow-hidden rounded-lg">
-      {/* Background grid */}
       <div className="absolute inset-0 m-telemetry-bg opacity-15" />
-
-      {/* Animated scanning line */}
       <div className="absolute inset-0 overflow-hidden">
         <div
           className="absolute left-0 right-0 h-px"
@@ -81,8 +72,6 @@ function IdleTelemetry() {
           }}
         />
       </div>
-
-      {/* Center message */}
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
         <LiveIndicator status="healthy" size="md" />
         <div className="text-center">
@@ -91,7 +80,6 @@ function IdleTelemetry() {
             Monitoring pipeline activity
           </p>
         </div>
-        {/* Simulated heartbeat line */}
         <div className="w-24 h-px relative overflow-hidden">
           <div
             className="absolute h-full w-8"
@@ -119,7 +107,7 @@ export function ActivityFeed() {
   }
 
   return (
-    <div className="space-y-1 max-h-[220px] overflow-y-auto pr-1">
+    <div className="space-y-1 max-h-[220px] overflow-y-auto pr-1 thin-scrollbar">
       <AnimatePresence mode="popLayout">
         {runsQ.data.map((run, i) => (
           <FeedRow key={run.id} run={run} index={i} />

@@ -29,18 +29,18 @@ export function MetricCard({
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [isHovered, setIsHovered] = useState(false);
 
-  // Parse numeric value for animation
   const numericValue = typeof value === "number" ? value : null;
   const animatedNum = useAnimatedValue(numericValue ?? 0, 900);
-  const displayValue =
-    numericValue !== null ? formatAnimated(animatedNum) : value;
+  const displayValue = numericValue !== null ? formatAnimated(animatedNum) : value;
+
+  const accentLine = accentColor || (trend === "up" ? "var(--success)" : trend === "down" ? "var(--destructive)" : "var(--primary)");
 
   function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
     if (!cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width - 0.5;
     const y = (e.clientY - rect.top) / rect.height - 0.5;
-    setTilt({ x: y * -8, y: x * 8 });
+    setTilt({ x: y * -6, y: x * 6 });
   }
 
   function handleMouseLeave() {
@@ -48,20 +48,14 @@ export function MetricCard({
     setIsHovered(false);
   }
 
-  const trendColor = trend === "up" ? "var(--success)" : trend === "down" ? "var(--destructive)" : undefined;
-  const accentLine = accentColor || (trend === "up" ? "var(--success)" : trend === "down" ? "var(--destructive)" : "var(--primary)");
-
   return (
     <motion.div
       ref={cardRef}
       variants={fadeUp}
-      className={cn(
-        "group relative hud-panel hud-panel-interactive cursor-default",
-        className,
-      )}
+      className={cn("group relative hud-panel hud-panel-interactive cursor-default h-full", className)}
       style={{
         transform: `perspective(800px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
-        transition: isHovered ? "transform 0.1s ease-out" : "transform 0.4s ease-out, box-shadow 0.3s ease",
+        transition: isHovered ? "transform 0.1s ease-out" : "transform 0.4s ease-out",
       }}
       onMouseMove={handleMouseMove}
       onMouseEnter={() => setIsHovered(true)}
@@ -69,40 +63,38 @@ export function MetricCard({
     >
       <div className="hud-grain" />
 
-      {/* Accent line at top */}
       <div
-        className="absolute top-0 left-0 right-0 h-[1px]"
+        className="absolute top-0 left-4 right-4 h-px"
         style={{
           background: `linear-gradient(90deg, transparent, ${accentLine}, transparent)`,
-          opacity: isHovered ? 0.9 : 0.4,
+          opacity: isHovered ? 0.8 : 0.3,
           transition: "opacity 0.3s ease",
         }}
       />
 
-      {/* Glow effect on hover */}
       <div
-        className="absolute inset-0 pointer-events-none transition-opacity duration-500 mix-blend-screen"
+        className="absolute inset-0 pointer-events-none transition-opacity duration-500"
         style={{
-          background: `radial-gradient(300px circle at ${tilt.y * 10 + 50}% ${tilt.x * -10 + 50}%, ${accentLine}15, transparent)`,
+          background: `radial-gradient(250px circle at ${tilt.y * 10 + 50}% ${tilt.x * -10 + 50}%, ${accentLine}10, transparent)`,
           opacity: isHovered ? 1 : 0,
         }}
       />
 
-      <div className="relative p-5 z-10">
+      <div className="relative p-4 sm:p-5 z-10">
         <div className="flex items-start justify-between">
-          <div className="space-y-2">
-            <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+          <div className="space-y-1.5">
+            <p className="text-[11px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
               {title}
             </p>
-            <p className="text-2xl font-bold tracking-tight tabular-nums">
+            <p className="text-xl sm:text-2xl font-bold tracking-tight tabular-nums">
               {displayValue}
             </p>
             {subtitle && (
               <p
                 className={cn(
                   "text-xs font-medium",
-                  trend === "up" && "text-emerald-400",
-                  trend === "down" && "text-red-400",
+                  trend === "up" && "text-success",
+                  trend === "down" && "text-destructive",
                   !trend && "text-muted-foreground",
                 )}
               >

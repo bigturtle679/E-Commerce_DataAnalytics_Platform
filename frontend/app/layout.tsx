@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import { Outfit, Geist_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { FloatingDock } from "@/components/navigation/floating-dock";
-import { SmoothScroll } from "@/components/motion/smooth-scroll";
-import { SpatialBackground } from "@/components/system/spatial-background";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -17,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Meridian — Spatial Environment",
-  description: "Godmode cinematic data platform",
+  title: "Meridian — Command Center",
+  description: "Cinematic data operations platform",
 };
 
 export default function RootLayout({
@@ -29,18 +27,21 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${outfit.variable} ${geistMono.variable} dark h-full antialiased`}
+      className={`${outfit.variable} ${geistMono.variable} dark antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex font-sans text-foreground bg-background">
+      <body className="font-sans text-foreground bg-background overflow-hidden">
         <Providers>
-          <SmoothScroll>
-            <SpatialBackground />
-            <FloatingDock />
-            <main className="w-full flex-1 min-h-screen relative z-10 pb-24">
-              {children}
-            </main>
-          </SmoothScroll>
+          {/* Animated gradient mesh background */}
+          <div className="gradient-mesh" aria-hidden="true">
+            <div className="gradient-mesh-accent" />
+          </div>
+
+          <FloatingDock />
+
+          <main className="relative z-10 h-screen flex flex-col overflow-y-auto overflow-x-hidden no-scrollbar">
+            {children}
+          </main>
         </Providers>
       </body>
     </html>
