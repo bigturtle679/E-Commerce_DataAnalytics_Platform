@@ -56,7 +56,7 @@ export function MetricCard({
       ref={cardRef}
       variants={fadeUp}
       className={cn(
-        "group relative overflow-hidden rounded-xl m-panel cursor-default",
+        "group relative hud-panel hud-panel-interactive cursor-default",
         className,
       )}
       style={{
@@ -67,26 +67,28 @@ export function MetricCard({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={handleMouseLeave}
     >
+      <div className="hud-grain" />
+
       {/* Accent line at top */}
       <div
-        className="absolute top-0 left-0 right-0 h-[2px]"
+        className="absolute top-0 left-0 right-0 h-[1px]"
         style={{
           background: `linear-gradient(90deg, transparent, ${accentLine}, transparent)`,
-          opacity: isHovered ? 0.8 : 0.3,
+          opacity: isHovered ? 0.9 : 0.4,
           transition: "opacity 0.3s ease",
         }}
       />
 
       {/* Glow effect on hover */}
       <div
-        className="absolute inset-0 pointer-events-none transition-opacity duration-500"
+        className="absolute inset-0 pointer-events-none transition-opacity duration-500 mix-blend-screen"
         style={{
-          background: `radial-gradient(300px circle at ${tilt.y * 10 + 50}% ${tilt.x * -10 + 50}%, ${accentLine}08, transparent)`,
+          background: `radial-gradient(300px circle at ${tilt.y * 10 + 50}% ${tilt.x * -10 + 50}%, ${accentLine}15, transparent)`,
           opacity: isHovered ? 1 : 0,
         }}
       />
 
-      <div className="relative p-5">
+      <div className="relative p-5 z-10">
         <div className="flex items-start justify-between">
           <div className="space-y-2">
             <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">

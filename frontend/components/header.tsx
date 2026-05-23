@@ -29,35 +29,37 @@ export function Header({ title, description }: HeaderProps) {
   }, []);
 
   return (
-    <header className="relative flex h-14 items-center justify-between border-b border-border px-6">
-      {/* Bottom gradient accent */}
+    <header className="fixed top-0 left-0 right-0 z-40 flex h-16 items-center justify-between px-6 pt-2 pb-2">
+      <div className="absolute inset-x-4 inset-y-2 hud-panel pointer-events-none" />
+      
+      {/* Bottom gradient accent using Horizon palette */}
       <div
-        className="absolute bottom-0 left-0 right-0 h-px"
+        className="absolute bottom-2 left-8 right-8 h-[1px] opacity-30"
         style={{
-          background: "linear-gradient(90deg, transparent, oklch(0.65 0.22 260 / 15%), oklch(0.7 0.18 200 / 10%), transparent)",
+          background: "linear-gradient(90deg, transparent, var(--primary), var(--warning), transparent)",
         }}
       />
 
-      <div className="flex items-center gap-4">
+      <div className="relative z-10 flex items-center gap-4 pl-6">
         <div>
-          <h1 className="text-base font-semibold tracking-tight">{title}</h1>
+          <h1 className="text-sm font-medium tracking-wide text-foreground">{title}</h1>
           {description && (
-            <p className="text-[11px] text-muted-foreground">{description}</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest">{description}</p>
           )}
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="relative z-10 flex items-center gap-6 pr-6">
         {/* System status */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/30 border border-border/50">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/5 backdrop-blur-md">
           <LiveIndicator status="healthy" size="sm" />
-          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-            All Systems Operational
+          <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-[0.2em]">
+            Operational
           </span>
         </div>
 
         {/* Live clock */}
-        <span className="font-mono text-xs text-muted-foreground tabular-nums">
+        <span className="font-mono text-[11px] text-foreground/80 tabular-nums font-semibold tracking-wider">
           {time}
         </span>
 

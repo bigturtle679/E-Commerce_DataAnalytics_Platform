@@ -58,20 +58,21 @@ export default function PipelinePage() {
 
   return (
     <PageTransition>
-      <div className="flex flex-col">
-        <Header title="Pipeline Monitoring" description="DAG runs, task stats, and execution metrics" />
+      <div className="flex flex-col min-h-[200vh] pt-[30vh]">
+        <Header title="Pipeline Topology" description="Execution metrics and DAG runs" />
 
-        <div className="flex-1 space-y-6 p-6">
+        <div className="flex-1 space-y-24 px-12 pb-[20vh] max-w-7xl mx-auto w-full">
           {/* Animated throughput counter */}
           <motion.div
             variants={fadeUp}
             initial="hidden"
             animate="visible"
+            className="flex justify-center mb-12"
           >
             <ThroughputCounter
               value={totalRowsProcessed}
               label="total rows processed"
-              className="mb-2"
+              className="scale-125"
             />
           </motion.div>
 
@@ -82,14 +83,16 @@ export default function PipelinePage() {
               variants={fadeUp}
               initial="hidden"
               animate="visible"
-              className="m-panel flex items-center justify-center rounded-xl p-6"
+              className="hud-panel flex flex-col items-center justify-center rounded-xl p-6 relative overflow-hidden"
             >
+              <div className="hud-grain" />
               <GaugeRing
                 value={successRate}
-                size={130}
-                strokeWidth={8}
+                size={140}
+                strokeWidth={6}
                 label="Success Rate"
                 sublabel="across all tasks"
+                className="relative z-10"
               />
             </motion.div>
 
@@ -101,7 +104,6 @@ export default function PipelinePage() {
                   value={totalFailures}
                   trend={totalFailures === 0 ? "up" : "down"}
                   subtitle="across all tasks"
-                  accentColor={totalFailures === 0 ? "var(--success)" : "var(--destructive)"}
                 />
               </StaggerItem>
               <StaggerItem>
@@ -109,7 +111,6 @@ export default function PipelinePage() {
                   title="Active Tasks"
                   value={statsQ.data?.length ?? 0}
                   subtitle="monitored"
-                  accentColor="var(--chart-3)"
                 />
               </StaggerItem>
               <StaggerItem>
@@ -117,14 +118,13 @@ export default function PipelinePage() {
                   title="Rows Processed"
                   value={formatNumber(totalRowsProcessed)}
                   subtitle="total"
-                  accentColor="var(--chart-2)"
                 />
               </StaggerItem>
             </StaggerContainer>
           </div>
 
           {/* Charts */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
             {/* Task Duration — horizontal BarChart */}
             <motion.div
               variants={fadeUp}

@@ -31,10 +31,9 @@ export function GaugeRing({
   }, [value]);
 
   const getColor = (v: number) => {
-    if (v >= 95) return "oklch(0.65 0.2 150)"; // green
-    if (v >= 80) return "oklch(0.65 0.22 260)"; // blue
-    if (v >= 60) return "oklch(0.75 0.18 80)"; // amber
-    return "oklch(0.65 0.22 25)"; // red
+    if (v >= 95) return "var(--success)"; // Sage Green
+    if (v >= 75) return "var(--warning)"; // Warm Gold
+    return "var(--destructive)"; // Terracotta
   };
 
   const color = getColor(value);

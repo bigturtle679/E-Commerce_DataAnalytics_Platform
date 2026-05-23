@@ -53,12 +53,12 @@ export default function AnalyticsPage() {
 
   return (
     <PageTransition>
-      <div className="flex flex-col">
-        <Header title="Data Analytics" description="Business metrics and trends" />
+      <div className="flex flex-col min-h-[200vh] pt-[30vh]">
+        <Header title="Intelligence Node" description="Business metrics and behavioral trends" />
 
-        <div className="flex-1 space-y-6 p-6">
+        <div className="flex-1 space-y-32 px-12 pb-[20vh] max-w-7xl mx-auto w-full">
           {/* Summary metrics */}
-          <StaggerContainer className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StaggerContainer className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <StaggerItem>
               <MetricCard title="Total Revenue" value={formatCurrency(totalRevenue)} />
             </StaggerItem>
@@ -78,7 +78,7 @@ export default function AnalyticsPage() {
             variants={fadeUp}
             initial="hidden"
             animate="visible"
-            className="grid grid-cols-1 gap-6 lg:grid-cols-2"
+            className="grid grid-cols-1 gap-8 lg:grid-cols-2"
           >
             <ChartContainer
               title="Revenue Trend"
@@ -88,12 +88,12 @@ export default function AnalyticsPage() {
               stateLabel="Live"
               stateStatus="healthy"
             >
-              <ResponsiveContainer width="100%" height={260}>
+              <ResponsiveContainer width="100%" height={300}>
                 <AreaChart data={revenueData}>
                   <defs>
                     <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
+                      <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <XAxis
@@ -112,14 +112,16 @@ export default function AnalyticsPage() {
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "var(--card)",
-                      border: "1px solid var(--border)",
-                      borderRadius: 8,
+                      backgroundColor: "var(--hud-bg)",
+                      backdropFilter: "blur(20px)",
+                      border: "1px solid var(--hud-border)",
+                      borderRadius: 12,
                       fontSize: 12,
+                      boxShadow: "var(--hud-glow)",
                     }}
                     formatter={(value) => [formatCurrency(Number(value)), "Revenue"]}
                   />
-                  <Area type="monotone" dataKey="total_revenue" stroke="var(--chart-1)" strokeWidth={2} fill="url(#revGrad)" />
+                  <Area type="monotone" dataKey="total_revenue" stroke="var(--primary)" strokeWidth={2} fill="url(#revGrad)" />
                 </AreaChart>
               </ResponsiveContainer>
             </ChartContainer>
@@ -132,7 +134,7 @@ export default function AnalyticsPage() {
               stateLabel="Live"
               stateStatus="healthy"
             >
-              <ResponsiveContainer width="100%" height={260}>
+              <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={orderData}>
                   <XAxis
                     dataKey="period"
@@ -149,17 +151,19 @@ export default function AnalyticsPage() {
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "var(--card)",
-                      border: "1px solid var(--border)",
-                      borderRadius: 8,
+                      backgroundColor: "var(--hud-bg)",
+                      backdropFilter: "blur(20px)",
+                      border: "1px solid var(--hud-border)",
+                      borderRadius: 12,
                       fontSize: 12,
+                      boxShadow: "var(--hud-glow)",
                     }}
                     formatter={(value, name) => [
                       formatNumber(Number(value)),
                       name === "order_count" ? "Orders" : "Items",
                     ]}
                   />
-                  <Bar dataKey="order_count" fill="var(--chart-2)" radius={[3, 3, 0, 0]} name="order_count" />
+                  <Bar dataKey="order_count" fill="var(--chart-2)" radius={[4, 4, 0, 0]} name="order_count" opacity={0.8} />
                 </BarChart>
               </ResponsiveContainer>
             </ChartContainer>
@@ -170,7 +174,7 @@ export default function AnalyticsPage() {
             variants={fadeUp}
             initial="hidden"
             animate="visible"
-            className="grid grid-cols-1 gap-6 lg:grid-cols-5"
+            className="grid grid-cols-1 gap-8 lg:grid-cols-5"
           >
             <ChartContainer
               title="Customer Growth"
@@ -181,7 +185,7 @@ export default function AnalyticsPage() {
               stateLabel="Live"
               stateStatus="healthy"
             >
-              <ResponsiveContainer width="100%" height={260}>
+              <ResponsiveContainer width="100%" height={300}>
                 <AreaChart data={customerData}>
                   <defs>
                     <linearGradient id="custGrad" x1="0" y1="0" x2="0" y2="1">
@@ -204,10 +208,12 @@ export default function AnalyticsPage() {
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "var(--card)",
-                      border: "1px solid var(--border)",
-                      borderRadius: 8,
+                      backgroundColor: "var(--hud-bg)",
+                      backdropFilter: "blur(20px)",
+                      border: "1px solid var(--hud-border)",
+                      borderRadius: 12,
                       fontSize: 12,
+                      boxShadow: "var(--hud-glow)",
                     }}
                     formatter={(value, name) => [
                       formatNumber(Number(value)),
@@ -215,7 +221,7 @@ export default function AnalyticsPage() {
                     ]}
                   />
                   <Area type="monotone" dataKey="total_customers" stroke="var(--chart-3)" strokeWidth={2} fill="url(#custGrad)" name="total_customers" />
-                  <Area type="monotone" dataKey="new_customers" stroke="var(--chart-4)" strokeWidth={1.5} fill="none" strokeDasharray="4 2" name="new_customers" />
+                  <Area type="monotone" dataKey="new_customers" stroke="var(--warning)" strokeWidth={1.5} fill="none" strokeDasharray="4 2" name="new_customers" />
                 </AreaChart>
               </ResponsiveContainer>
             </ChartContainer>
@@ -229,7 +235,7 @@ export default function AnalyticsPage() {
               stateLabel="Live"
               stateStatus="healthy"
             >
-              <ResponsiveContainer width="100%" height={260}>
+              <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
                     data={geoQ.data?.slice(0, 5) ?? []}
@@ -237,10 +243,10 @@ export default function AnalyticsPage() {
                     nameKey="state"
                     cx="50%"
                     cy="50%"
-                    outerRadius={85}
-                    innerRadius={50}
+                    outerRadius={100}
+                    innerRadius={60}
                     strokeWidth={2}
-                    stroke="var(--card)"
+                    stroke="var(--hud-bg)"
                   >
                     {geoQ.data?.slice(0, 5).map((_, i) => (
                       <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
@@ -248,10 +254,12 @@ export default function AnalyticsPage() {
                   </Pie>
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "var(--card)",
-                      border: "1px solid var(--border)",
-                      borderRadius: 8,
+                      backgroundColor: "var(--hud-bg)",
+                      backdropFilter: "blur(20px)",
+                      border: "1px solid var(--hud-border)",
+                      borderRadius: 12,
                       fontSize: 12,
+                      boxShadow: "var(--hud-glow)",
                     }}
                     formatter={(value) => [formatNumber(Number(value)), "Customers"]}
                   />
@@ -279,7 +287,7 @@ export default function AnalyticsPage() {
             >
               <Table>
                 <TableHeader>
-                  <TableRow>
+                  <TableRow className="border-white/10">
                     <TableHead className="text-xs w-8">#</TableHead>
                     <TableHead className="text-xs">Product</TableHead>
                     <TableHead className="text-xs">Category</TableHead>
@@ -289,14 +297,14 @@ export default function AnalyticsPage() {
                 </TableHeader>
                 <TableBody>
                   {productsQ.data?.map((p, i) => (
-                    <TableRow key={p.product_id}>
-                      <TableCell className="text-xs text-muted-foreground py-2">{i + 1}</TableCell>
-                      <TableCell className="text-xs font-medium py-2 max-w-[200px] truncate">
+                    <TableRow key={p.product_id} className="border-white/10 hover:bg-white/5 transition-colors">
+                      <TableCell className="text-xs text-muted-foreground py-3">{i + 1}</TableCell>
+                      <TableCell className="text-xs font-medium py-3 max-w-[200px] truncate tracking-wide">
                         {p.product_name ?? p.product_id}
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground py-2">{p.category ?? "—"}</TableCell>
-                      <TableCell className="text-xs text-right py-2 font-medium">{formatCurrency(p.total_revenue)}</TableCell>
-                      <TableCell className="text-xs text-right py-2">{formatNumber(p.units_sold)}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground py-3">{p.category ?? "—"}</TableCell>
+                      <TableCell className="text-xs text-right py-3 font-medium font-mono">{formatCurrency(p.total_revenue)}</TableCell>
+                      <TableCell className="text-xs text-right py-3 font-mono">{formatNumber(p.units_sold)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

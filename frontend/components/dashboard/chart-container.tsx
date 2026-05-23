@@ -27,12 +27,17 @@ export function ChartContainer({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-xl m-panel",
+        "relative overflow-hidden rounded-xl hud-panel hud-panel-interactive",
         className,
       )}
     >
-      {/* Accent line */}
-      <div className="absolute top-0 left-0 right-0 h-px m-accent-line" />
+      <div className="hud-grain" />
+      
+      {/* Accent line using Horizon palette */}
+      <div 
+        className="absolute top-0 left-0 right-0 h-[1px] opacity-30" 
+        style={{ background: "linear-gradient(90deg, transparent, var(--primary), transparent)" }}
+      />
 
       {title && (
         <div className="flex items-center justify-between px-5 pt-5 pb-2">

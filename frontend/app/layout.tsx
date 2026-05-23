@@ -1,22 +1,24 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Outfit, Geist_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
-import { Sidebar } from "@/components/sidebar";
+import { FloatingDock } from "@/components/navigation/floating-dock";
+import { SmoothScroll } from "@/components/motion/smooth-scroll";
+import { SpatialBackground } from "@/components/system/spatial-background";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const outfit = Outfit({
+  variable: "--font-sans",
   subsets: ["latin"],
 });
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+  variable: "--font-mono",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "Meridian — Data Platform",
-  description: "Production-grade e-commerce data platform — from ingestion to insight",
+  title: "Meridian — Spatial Environment",
+  description: "Godmode cinematic data platform",
 };
 
 export default function RootLayout({
@@ -27,15 +29,18 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
+      className={`${outfit.variable} ${geistMono.variable} dark h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex">
+      <body className="min-h-full flex font-sans text-foreground bg-background">
         <Providers>
-          <Sidebar />
-          <main className="ml-56 flex-1 min-h-screen">
-            {children}
-          </main>
+          <SmoothScroll>
+            <SpatialBackground />
+            <FloatingDock />
+            <main className="w-full flex-1 min-h-screen relative z-10 pb-24">
+              {children}
+            </main>
+          </SmoothScroll>
         </Providers>
       </body>
     </html>

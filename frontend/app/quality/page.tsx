@@ -64,46 +64,45 @@ export default function QualityPage() {
 
   return (
     <PageTransition>
-      <div className="flex flex-col">
-        <Header title="Data Quality" description="Freshness, row counts, and pipeline integrity" />
+      <div className="flex flex-col min-h-[200vh] pt-[30vh]">
+        <Header title="Data Quality Matrix" description="Freshness, row counts, and pipeline integrity" />
 
-        <div className="flex-1 space-y-6 p-6">
+        <div className="flex-1 space-y-32 px-12 pb-[20vh] max-w-7xl mx-auto w-full">
           {/* ── Hero Section: Gauge + Metric Cards ── */}
-          <StaggerContainer className="grid grid-cols-1 gap-6 lg:grid-cols-[auto_1fr]">
+          <StaggerContainer className="grid grid-cols-1 gap-8 lg:grid-cols-[auto_1fr]">
             {/* Gauge Ring */}
             <StaggerItem className="flex items-center justify-center">
-              <div className="m-panel flex items-center justify-center rounded-xl px-8 py-6">
+              <div className="hud-panel flex items-center justify-center rounded-xl px-10 py-8 relative overflow-hidden">
+                <div className="hud-grain" />
                 <GaugeRing
                   value={healthScore}
-                  size={140}
+                  size={160}
                   strokeWidth={8}
                   label="Data Health"
                   sublabel="across all sources"
+                  className="relative z-10 scale-110"
                 />
               </div>
             </StaggerItem>
 
             {/* Three metric cards */}
             <StaggerItem>
-              <div className="grid h-full grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="grid h-full grid-cols-1 gap-6 sm:grid-cols-3">
                 <MetricCard
                   title="Total Tables"
                   value={summary?.total_tables ?? 0}
                   subtitle="monitored"
-                  accentColor="var(--chart-1)"
                 />
                 <MetricCard
                   title="Total Rows"
                   value={formatNumber(summary?.total_rows ?? 0)}
                   subtitle="across all tables"
-                  accentColor="var(--chart-5)"
                 />
                 <MetricCard
                   title="Stale Sources"
                   value={staleSources}
                   subtitle={`${summary?.freshness_warn ?? 0} warn · ${summary?.freshness_error ?? 0} error`}
                   trend={staleSources > 0 ? "down" : "up"}
-                  accentColor="var(--destructive)"
                 />
               </div>
             </StaggerItem>
@@ -121,26 +120,31 @@ export default function QualityPage() {
                 staleSources > 0 ? "degraded" : "healthy"
               }
             >
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
                 {freshnessQ.data?.map((f) => {
                   const status = f.status as string;
-                  const borderColor = STATUS_BORDER[status] ?? STATUS_BORDER.unknown;
                   const indicatorStatus = STATUS_TO_INDICATOR[status] ?? "offline";
+                  // Style border colors for godmode glow
+                  let borderClass = "border-muted/20 shadow-none";
+                  if (status === "ok") borderClass = "border-success/30 shadow-[0_0_10px_var(--success-alpha)]";
+                  if (status === "warn") borderClass = "border-warning/30 shadow-[0_0_10px_var(--warning-alpha)]";
+                  if (status === "error") borderClass = "border-destructive/30 shadow-[0_0_10px_var(--destructive-alpha)]";
 
                   return (
                     <div
                       key={f.table}
-                      className={`m-panel flex flex-col gap-2 rounded-lg border-l-2 px-4 py-3 ${borderColor}`}
+                      className={`hud-panel flex flex-col gap-3 rounded-lg border-l-2 px-5 py-4 relative overflow-hidden transition-all duration-300 hover:scale-[1.02] ${borderClass}`}
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="hud-grain opacity-50" />
+                      <div className="flex items-center gap-2 relative z-10">
                         <LiveIndicator status={indicatorStatus} size="sm" />
-                        <span className="truncate text-xs font-medium text-foreground">
+                        <span className="truncate text-xs font-medium text-foreground tracking-wide uppercase">
                           {f.table}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between relative z-10">
                         <StatusBadge status={f.status} />
-                        <span className="text-[10px] tabular-nums text-muted-foreground">
+                        <span className="text-[10px] tabular-nums text-muted-foreground font-mono">
                           {f.hours_ago !== null ? `${f.hours_ago}h ago` : "—"}
                         </span>
                       </div>
@@ -161,8 +165,8 @@ export default function QualityPage() {
               stateLabel="Tables"
               stateStatus="healthy"
             >
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={rowChartData} layout="vertical" barCategoryGap="15%">
+              <ResponsiveContainer width="100%" height={340}>
+                <BarChart data={rowChartData} layout="vertical" barCategoryGap="20%">
                   <XAxis
                     type="number"
                     tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
@@ -176,19 +180,21 @@ export default function QualityPage() {
                     tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
                     axisLine={false}
                     tickLine={false}
-                    width={120}
+                    width={140}
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "var(--card)",
-                      border: "1px solid var(--border)",
-                      borderRadius: 8,
+                      backgroundColor: "var(--hud-bg)",
+                      backdropFilter: "blur(20px)",
+                      border: "1px solid var(--hud-border)",
+                      borderRadius: 12,
                       fontSize: 12,
+                      boxShadow: "var(--hud-glow)",
                     }}
                     formatter={(value) => [formatNumber(Number(value)), "Rows"]}
                     labelFormatter={(label) => String(label)}
                   />
-                  <Bar dataKey="rows" fill="var(--chart-1)" radius={[0, 3, 3, 0]} />
+                  <Bar dataKey="rows" fill="var(--primary)" radius={[0, 4, 4, 0]} opacity={0.8} />
                 </BarChart>
               </ResponsiveContainer>
             </ChartContainer>
@@ -206,7 +212,7 @@ export default function QualityPage() {
             >
               <Table>
                 <TableHeader>
-                  <TableRow>
+                  <TableRow className="border-white/10">
                     <TableHead className="text-xs">Schema</TableHead>
                     <TableHead className="text-xs">Table</TableHead>
                     <TableHead className="text-xs text-right">Row Count</TableHead>
@@ -215,17 +221,17 @@ export default function QualityPage() {
                 </TableHeader>
                 <TableBody>
                   {rowCountsQ.data?.map((r) => (
-                    <TableRow key={`${r.schema_name}.${r.table_name}`}>
-                      <TableCell className="text-xs text-muted-foreground py-2">
-                        <span className="rounded-sm bg-muted px-1.5 py-0.5 font-mono text-[10px]">
+                    <TableRow key={`${r.schema_name}.${r.table_name}`} className="border-white/10 hover:bg-white/5 transition-colors">
+                      <TableCell className="text-xs text-muted-foreground py-3">
+                        <span className="rounded-sm bg-white/5 border border-white/10 px-1.5 py-0.5 font-mono text-[10px]">
                           {r.schema_name}
                         </span>
                       </TableCell>
-                      <TableCell className="text-xs font-medium py-2">{r.table_name}</TableCell>
-                      <TableCell className="text-xs text-right py-2 font-mono">
+                      <TableCell className="text-xs font-medium py-3 tracking-wide">{r.table_name}</TableCell>
+                      <TableCell className="text-xs text-right py-3 font-mono">
                         {formatNumber(r.row_count)}
                       </TableCell>
-                      <TableCell className="text-xs text-right text-muted-foreground py-2">
+                      <TableCell className="text-xs text-right text-muted-foreground py-3 font-mono">
                         {formatRelativeTime(r.last_loaded_at)}
                       </TableCell>
                     </TableRow>

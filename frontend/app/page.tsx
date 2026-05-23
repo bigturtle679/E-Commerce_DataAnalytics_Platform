@@ -63,219 +63,194 @@ export default function OverviewPage() {
   );
 
   return (
-    <div className="flex flex-col">
-      <Header title="Overview" description="System health and pipeline summary" />
+    <div className="flex flex-col min-h-[300vh]">
+      <Header title="Meridian Spatial" description="Overview & Telemetry" />
 
-      <PageTransition className="flex-1">
-        {/* Hero — 3D Data Flow */}
-        <motion.div variants={fadeUp} className="relative">
-          <div className="relative h-[260px] overflow-hidden border-b border-border">
-            <TelemetryBackground className="absolute inset-0" />
-            <Suspense
-              fallback={
-                <div className="h-full flex items-center justify-center">
-                  <div className="flex items-center gap-3">
-                    <LiveIndicator status="healthy" size="md" />
-                    <span className="text-sm text-muted-foreground">
-                      Initializing pipeline view...
-                    </span>
-                  </div>
+      {/* Scrolling Content over the 3D scene */}
+      <PageTransition className="relative z-10 flex flex-col pt-[50vh]">
+        
+        {/* Scrollytelling Spacer - lets the user admire the 3D scene first */}
+        <div className="flex flex-col items-center justify-center pb-[20vh]">
+          <motion.div
+            variants={fadeUp}
+            className="text-center space-y-4 max-w-lg mx-auto hud-panel p-8"
+          >
+            <div className="hud-grain" />
+            <h2 className="text-3xl font-light tracking-wide text-foreground relative z-10">
+              Pipeline Topology
+            </h2>
+            <p className="text-sm text-muted-foreground font-mono relative z-10">
+              {totalRuns} Executions • {formatNumber(totalRows)} Rows Processed
+            </p>
+            <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-primary/50 to-transparent relative z-10 mt-6" />
+          </motion.div>
+        </div>
+
+        <div className="px-12 space-y-32 pb-[30vh]">
+          
+          {/* Station 1: Core Metrics */}
+          <section className="max-w-6xl mx-auto">
+            <h3 className="text-sm font-semibold tracking-widest uppercase text-muted-foreground mb-6 ml-2">System Metrics</h3>
+            <StaggerContainer className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              <StaggerItem>
+                <MetricCard
+                  title="Pipeline Runs"
+                  value={formatNumber(totalRuns)}
+                  subtitle={`${totalFailures} failures`}
+                  trend={totalFailures > 0 ? "down" : "neutral"}
+                />
+              </StaggerItem>
+              <StaggerItem>
+                <MetricCard
+                  title="Rows Processed"
+                  value={formatNumber(totalRows)}
+                />
+              </StaggerItem>
+              <StaggerItem>
+                <MetricCard
+                  title="Avg Duration"
+                  value={formatDuration(avgDuration)}
+                  subtitle="per task"
+                />
+              </StaggerItem>
+              <StaggerItem>
+                <MetricCard
+                  title="Source Health"
+                  value={`${healthySourcesCount}/${freshnessQ.data?.length ?? 0}`}
+                  subtitle="sources fresh"
+                  trend={healthySourcesCount === (freshnessQ.data?.length ?? 0) ? "up" : "down"}
+                />
+              </StaggerItem>
+            </StaggerContainer>
+          </section>
+
+          {/* Station 2: Analytics & Live Feed */}
+          <section className="max-w-7xl mx-auto">
+            <h3 className="text-sm font-semibold tracking-widest uppercase text-muted-foreground mb-6 ml-2">Telemetry Stream</h3>
+            <motion.div variants={fadeUp} className="grid grid-cols-1 gap-8 lg:grid-cols-5">
+              {/* Revenue trend */}
+              <ChartContainer
+                title="Revenue Trend"
+                subtitle="Last 12 months"
+                className="lg:col-span-3"
+                loading={revenueQ.isLoading}
+                empty={!revenueChartData.length}
+                stateLabel="Live"
+                stateStatus="healthy"
+              >
+                <ResponsiveContainer width="100%" height={260}>
+                  <AreaChart data={revenueChartData}>
+                    <defs>
+                      <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis
+                      dataKey="period"
+                      tickFormatter={(v) => String(v).slice(5)}
+                      tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tickFormatter={(v) => formatCurrency(Number(v))}
+                      tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={70}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "var(--hud-bg)",
+                        backdropFilter: "blur(20px)",
+                        border: "1px solid var(--hud-border)",
+                        borderRadius: 12,
+                        fontSize: 12,
+                        boxShadow: "var(--hud-glow)",
+                      }}
+                      formatter={(value) => [formatCurrency(Number(value)), "Revenue"]}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="total_revenue"
+                      stroke="var(--primary)"
+                      strokeWidth={2}
+                      fill="url(#revenueGrad)"
+                      animationDuration={1200}
+                      animationEasing="ease-out"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+
+              {/* Pipeline activity feed */}
+              <ChartContainer
+                title="Pipeline Activity"
+                subtitle="Live feed"
+                className="lg:col-span-2"
+                stateLabel="Monitoring"
+                stateStatus="healthy"
+              >
+                <div className="h-[260px]">
+                  <ActivityFeed />
                 </div>
-              }
-            >
-              <DataFlowScene className="relative h-full" />
-            </Suspense>
-          </div>
+              </ChartContainer>
+            </motion.div>
+          </section>
 
-          {/* System throughput bar */}
-          <div className="flex items-center justify-between px-6 py-2 border-b border-border bg-muted/20">
-            <div className="flex items-center gap-4">
-              <LiveIndicator status="healthy" size="sm" showLabel />
-              <div className="w-px h-4 bg-border" />
-              <ThroughputCounter value={totalRows} label="total rows processed" />
-            </div>
-            <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
-              <span className="tabular-nums">{totalRuns} pipeline runs</span>
-              <span className="tabular-nums">{totalFailures} failures</span>
-            </div>
-          </div>
-        </motion.div>
-
-        <div className="space-y-6 p-6">
-          {/* Metric cards */}
-          <StaggerContainer className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StaggerItem>
-              <MetricCard
-                title="Pipeline Runs"
-                value={formatNumber(totalRuns)}
-                subtitle={`${totalFailures} failures`}
-                trend={totalFailures > 0 ? "down" : "neutral"}
-                icon={
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-                  </svg>
-                }
-              />
-            </StaggerItem>
-            <StaggerItem>
-              <MetricCard
-                title="Rows Processed"
-                value={formatNumber(totalRows)}
-                icon={
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <ellipse cx="12" cy="5" rx="9" ry="3" />
-                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
-                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
-                  </svg>
-                }
-              />
-            </StaggerItem>
-            <StaggerItem>
-              <MetricCard
-                title="Avg Duration"
-                value={formatDuration(avgDuration)}
-                subtitle="per task"
-                icon={
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" />
-                    <polyline points="12 6 12 12 16 14" />
-                  </svg>
-                }
-              />
-            </StaggerItem>
-            <StaggerItem>
-              <MetricCard
-                title="Source Health"
-                value={`${healthySourcesCount}/${freshnessQ.data?.length ?? 0}`}
-                subtitle="sources fresh"
-                trend={healthySourcesCount === (freshnessQ.data?.length ?? 0) ? "up" : "down"}
-                icon={
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-                  </svg>
-                }
-              />
-            </StaggerItem>
-          </StaggerContainer>
-
-          {/* Charts + Activity Feed */}
-          <motion.div variants={fadeUp} className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-            {/* Revenue trend */}
-            <ChartContainer
-              title="Revenue Trend"
-              subtitle="Last 12 months"
-              className="lg:col-span-3"
-              loading={revenueQ.isLoading}
-              empty={!revenueChartData.length}
-              stateLabel="Live"
-              stateStatus="healthy"
-            >
-              <ResponsiveContainer width="100%" height={220}>
-                <AreaChart data={revenueChartData}>
-                  <defs>
-                    <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis
-                    dataKey="period"
-                    tickFormatter={(v) => String(v).slice(5)}
-                    tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    tickFormatter={(v) => formatCurrency(Number(v))}
-                    tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                    axisLine={false}
-                    tickLine={false}
-                    width={70}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "var(--m-surface-2)",
-                      border: "1px solid var(--m-border-subtle)",
-                      borderRadius: 10,
-                      fontSize: 12,
-                      boxShadow: "var(--m-shadow-lg)",
-                    }}
-                    formatter={(value) => [formatCurrency(Number(value)), "Revenue"]}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="total_revenue"
-                    stroke="var(--chart-1)"
-                    strokeWidth={2}
-                    fill="url(#revenueGrad)"
-                    animationDuration={1200}
-                    animationEasing="ease-out"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-
-            {/* Pipeline activity feed */}
-            <ChartContainer
-              title="Pipeline Activity"
-              subtitle="Live feed"
-              className="lg:col-span-2"
-              stateLabel="Monitoring"
-              stateStatus="healthy"
-            >
-              <ActivityFeed />
-            </ChartContainer>
-          </motion.div>
-
-          {/* Pipeline health by source */}
-          <motion.div variants={fadeUp}>
-            <ChartContainer
-              title="Pipeline Health"
-              loading={healthQ.isLoading}
-              empty={!healthQ.data?.length}
-              stateLabel="System Status"
-              stateStatus="healthy"
-            >
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-xs">Pipeline</TableHead>
-                      <TableHead className="text-xs text-right">Last Success</TableHead>
-                      <TableHead className="text-xs text-right">Failures (24h)</TableHead>
-                      <TableHead className="text-xs text-right">Runs (24h)</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {healthQ.data?.map((h) => (
-                      <TableRow key={h.pipeline_name} className="group hover:bg-muted/30 transition-colors">
-                        <TableCell className="text-xs font-medium py-2.5">
-                          <div className="flex items-center gap-2">
-                            <LiveIndicator
-                              status={h.failures_last_24h > 0 ? "degraded" : "healthy"}
-                              size="sm"
-                            />
-                            {h.pipeline_name}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground text-right py-2.5">
-                          {formatRelativeTime(h.last_success_at)}
-                        </TableCell>
-                        <TableCell className="text-right py-2.5">
-                          <span className={h.failures_last_24h > 0 ? "text-red-400 text-xs font-medium" : "text-xs text-muted-foreground"}>
-                            {h.failures_last_24h}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground text-right py-2.5">
-                          {h.runs_last_24h}
-                        </TableCell>
+          {/* Station 3: Node Health */}
+          <section className="max-w-5xl mx-auto">
+            <h3 className="text-sm font-semibold tracking-widest uppercase text-muted-foreground mb-6 ml-2">Node Status</h3>
+            <motion.div variants={fadeUp}>
+              <ChartContainer
+                title="Pipeline Health"
+                loading={healthQ.isLoading}
+                empty={!healthQ.data?.length}
+                stateLabel="System Status"
+                stateStatus="healthy"
+              >
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-white/10">
+                        <TableHead className="text-xs">Pipeline</TableHead>
+                        <TableHead className="text-xs text-right">Last Success</TableHead>
+                        <TableHead className="text-xs text-right">Failures (24h)</TableHead>
+                        <TableHead className="text-xs text-right">Runs (24h)</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </ChartContainer>
-          </motion.div>
+                    </TableHeader>
+                    <TableBody>
+                      {healthQ.data?.map((h) => (
+                        <TableRow key={h.pipeline_name} className="group border-white/10 hover:bg-white/5 transition-colors">
+                          <TableCell className="text-xs font-medium py-3">
+                            <div className="flex items-center gap-3">
+                              <LiveIndicator
+                                status={h.failures_last_24h > 0 ? "degraded" : "healthy"}
+                                size="sm"
+                              />
+                              {h.pipeline_name}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground text-right py-3 font-mono">
+                            {formatRelativeTime(h.last_success_at)}
+                          </TableCell>
+                          <TableCell className="text-right py-3 font-mono">
+                            <span className={h.failures_last_24h > 0 ? "text-primary text-xs font-medium" : "text-xs text-muted-foreground"}>
+                              {h.failures_last_24h}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground text-right py-3 font-mono">
+                            {h.runs_last_24h}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </ChartContainer>
+            </motion.div>
+          </section>
         </div>
       </PageTransition>
     </div>
