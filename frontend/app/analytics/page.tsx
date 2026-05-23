@@ -56,7 +56,7 @@ export default function AnalyticsPage() {
       <div className="flex flex-col min-h-[200vh] pt-[30vh]">
         <Header title="Intelligence Node" description="Business metrics and behavioral trends" />
 
-        <div className="flex-1 space-y-32 px-12 pb-[20vh] max-w-7xl mx-auto w-full">
+        <div className="flex-1 space-y-32 px-4 sm:px-8 lg:px-12 pb-[20vh] max-w-7xl mx-auto w-full">
           {/* Summary metrics */}
           <StaggerContainer className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <StaggerItem>

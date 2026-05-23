@@ -67,7 +67,7 @@ export default function QualityPage() {
       <div className="flex flex-col min-h-[200vh] pt-[30vh]">
         <Header title="Data Quality Matrix" description="Freshness, row counts, and pipeline integrity" />
 
-        <div className="flex-1 space-y-32 px-12 pb-[20vh] max-w-7xl mx-auto w-full">
+        <div className="flex-1 space-y-32 px-4 sm:px-8 lg:px-12 pb-[20vh] max-w-7xl mx-auto w-full">
           {/* ── Hero Section: Gauge + Metric Cards ── */}
           <StaggerContainer className="grid grid-cols-1 gap-8 lg:grid-cols-[auto_1fr]">
             {/* Gauge Ring */}

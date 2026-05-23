@@ -61,7 +61,7 @@ export default function PipelinePage() {
       <div className="flex flex-col min-h-[200vh] pt-[30vh]">
         <Header title="Pipeline Topology" description="Execution metrics and DAG runs" />
 
-        <div className="flex-1 space-y-24 px-12 pb-[20vh] max-w-7xl mx-auto w-full">
+        <div className="flex-1 space-y-24 px-4 sm:px-8 lg:px-12 pb-[20vh] max-w-7xl mx-auto w-full">
           {/* Animated throughput counter */}
           <motion.div
             variants={fadeUp}

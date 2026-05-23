@@ -86,7 +86,7 @@ export default function OverviewPage() {
           </motion.div>
         </div>
 
-        <div className="px-12 space-y-32 pb-[30vh]">
+        <div className="px-4 sm:px-8 lg:px-12 space-y-32 pb-[30vh]">
           
           {/* Station 1: Core Metrics */}
           <section className="w-full max-w-6xl mx-auto">

@@ -20,6 +20,10 @@
   --color-warning: var(--warning);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
   
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
@@ -47,6 +51,18 @@
   
   --border: oklch(0.92 0.01 80);
   --radius: 1rem;
+  
+  /* Missing variable definitions */
+  --accent: oklch(0.94 0.02 80);
+  --accent-foreground: oklch(0.2 0.02 240);
+  --card: oklch(0.98 0.002 80);
+  --card-foreground: oklch(0.18 0.02 240);
+  --m-surface-2: oklch(0.94 0.01 80);
+  --m-border-subtle: oklch(0.90 0.01 80);
+  --success-alpha: oklch(0.7 0.1 160 / 20%);
+  --warning-alpha: oklch(0.8 0.15 80 / 20%);
+  --destructive-alpha: oklch(0.65 0.16 45 / 20%);
+  --ring: oklch(0.65 0.16 45);
   
   /* HUD Glass System (Light) */
   --hud-bg: oklch(1 0 0 / 60%);
@@ -81,6 +97,18 @@
   --warning: oklch(0.8 0.15 80); /* Warm Gold */
   
   --border: oklch(1 0 0 / 8%);
+  
+  /* Missing variable definitions */
+  --accent: oklch(0.22 0.018 240);
+  --accent-foreground: oklch(0.95 0.005 80);
+  --card: oklch(0.18 0.012 240);
+  --card-foreground: oklch(0.95 0.005 80);
+  --m-surface-2: oklch(0.22 0.015 240);
+  --m-border-subtle: oklch(1 0 0 / 8%);
+  --success-alpha: oklch(0.7 0.1 160 / 15%);
+  --warning-alpha: oklch(0.8 0.15 80 / 15%);
+  --destructive-alpha: oklch(0.65 0.16 45 / 15%);
+  --ring: oklch(0.65 0.16 45);
   
   /* HUD Glass System (Dark) */
   --hud-bg: oklch(0 0 0 / 25%);
@@ -204,4 +232,39 @@
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* ═══════════════════════════════════════════════
+   MISSING ANIMATIONS (referenced by components)
+   ═══════════════════════════════════════════════ */
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, var(--muted), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes flow {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
+/* Telemetry grid pattern */
+.m-telemetry-bg {
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 20px 20px;
 }
