@@ -19,13 +19,11 @@ import { StaggerContainer, StaggerItem } from "@/components/motion/stagger-conta
 import { GaugeRing } from "@/components/charts/gauge-ring";
 import { LiveIndicator } from "@/components/system/live-indicator";
 
-const tooltipStyle = {
-  backgroundColor: "var(--hud-bg)",
-  backdropFilter: "blur(20px)",
-  border: "1px solid var(--hud-border)",
-  borderRadius: 12,
-  fontSize: 12,
-  boxShadow: "var(--hud-glow)",
+const STATUS_BORDER: Record<string, string> = {
+  ok: "border-emerald-500/40",
+  warn: "border-amber-500/40",
+  error: "border-red-500/40",
+  unknown: "border-zinc-500/40",
 };
 
 const STATUS_TO_INDICATOR: Record<string, "healthy" | "delayed" | "degraded" | "offline"> = {
@@ -65,52 +63,52 @@ export default function QualityPage() {
   );
 
   return (
-    <PageTransition className="flex flex-col h-full">
-      <Header title="Data Quality Matrix" description="Freshness, row counts, and pipeline integrity" />
+    <PageTransition>
+      <div className="flex flex-col min-h-[200vh] pt-[30vh]">
+        <Header title="Data Quality Matrix" description="Freshness, row counts, and pipeline integrity" />
 
-      <div className="flex-1 min-h-0 p-3 sm:p-4 lg:p-6 overflow-y-auto thin-scrollbar">
-        <div className="max-w-[1600px] mx-auto space-y-3 sm:space-y-4 lg:space-y-5">
-
-          {/* Row 1: Gauge + Metrics */}
-          <StaggerContainer className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-4">
+        <div className="flex-1 space-y-32 px-12 pb-[20vh] max-w-7xl mx-auto w-full">
+          {/* ── Hero Section: Gauge + Metric Cards ── */}
+          <StaggerContainer className="grid grid-cols-1 gap-8 lg:grid-cols-[auto_1fr]">
+            {/* Gauge Ring */}
             <StaggerItem className="flex items-center justify-center">
-              <div className="hud-panel flex items-center justify-center rounded-xl p-5 relative overflow-hidden w-full h-full">
+              <div className="hud-panel flex items-center justify-center rounded-xl px-10 py-8 relative overflow-hidden">
                 <div className="hud-grain" />
                 <GaugeRing
                   value={healthScore}
-                  size={130}
-                  strokeWidth={7}
+                  size={160}
+                  strokeWidth={8}
                   label="Data Health"
                   sublabel="across all sources"
-                  className="relative z-10"
+                  className="relative z-10 scale-110"
                 />
               </div>
             </StaggerItem>
+
+            {/* Three metric cards */}
             <StaggerItem>
-              <MetricCard
-                title="Total Tables"
-                value={summary?.total_tables ?? 0}
-                subtitle="monitored"
-              />
-            </StaggerItem>
-            <StaggerItem>
-              <MetricCard
-                title="Total Rows"
-                value={formatNumber(summary?.total_rows ?? 0)}
-                subtitle="across all tables"
-              />
-            </StaggerItem>
-            <StaggerItem>
-              <MetricCard
-                title="Stale Sources"
-                value={staleSources}
-                subtitle={`${summary?.freshness_warn ?? 0} warn · ${summary?.freshness_error ?? 0} error`}
-                trend={staleSources > 0 ? "down" : "up"}
-              />
+              <div className="grid h-full grid-cols-1 gap-6 sm:grid-cols-3">
+                <MetricCard
+                  title="Total Tables"
+                  value={summary?.total_tables ?? 0}
+                  subtitle="monitored"
+                />
+                <MetricCard
+                  title="Total Rows"
+                  value={formatNumber(summary?.total_rows ?? 0)}
+                  subtitle="across all tables"
+                />
+                <MetricCard
+                  title="Stale Sources"
+                  value={staleSources}
+                  subtitle={`${summary?.freshness_warn ?? 0} warn · ${summary?.freshness_error ?? 0} error`}
+                  trend={staleSources > 0 ? "down" : "up"}
+                />
+              </div>
             </StaggerItem>
           </StaggerContainer>
 
-          {/* Row 2: Source Freshness Grid */}
+          {/* ── Freshness Visual Grid ── */}
           <motion.div variants={fadeUp} initial="hidden" animate="visible">
             <ChartContainer
               title="Source Freshness"
@@ -118,13 +116,16 @@ export default function QualityPage() {
               loading={freshnessQ.isLoading}
               empty={!freshnessQ.data?.length}
               stateLabel="Sources"
-              stateStatus={staleSources > 0 ? "degraded" : "healthy"}
+              stateStatus={
+                staleSources > 0 ? "degraded" : "healthy"
+              }
             >
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
                 {freshnessQ.data?.map((f) => {
                   const status = f.status as string;
                   const indicatorStatus = STATUS_TO_INDICATOR[status] ?? "offline";
-                  let borderClass = "border-muted/20";
+                  // Style border colors for godmode glow
+                  let borderClass = "border-muted/20 shadow-none";
                   if (status === "ok") borderClass = "border-success/30 shadow-[0_0_10px_var(--success-alpha)]";
                   if (status === "warn") borderClass = "border-warning/30 shadow-[0_0_10px_var(--warning-alpha)]";
                   if (status === "error") borderClass = "border-destructive/30 shadow-[0_0_10px_var(--destructive-alpha)]";
@@ -132,7 +133,7 @@ export default function QualityPage() {
                   return (
                     <div
                       key={f.table}
-                      className={`hud-panel flex flex-col gap-2.5 rounded-lg border-l-2 px-4 py-3 relative overflow-hidden transition-all duration-200 hover:translate-y-[-1px] ${borderClass}`}
+                      className={`hud-panel flex flex-col gap-3 rounded-lg border-l-2 px-5 py-4 relative overflow-hidden transition-all duration-300 hover:scale-[1.02] ${borderClass}`}
                     >
                       <div className="hud-grain opacity-50" />
                       <div className="flex items-center gap-2 relative z-10">
@@ -154,81 +155,91 @@ export default function QualityPage() {
             </ChartContainer>
           </motion.div>
 
-          {/* Row 3: Row Counts + Table Inventory */}
-          <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-2">
-            <motion.div variants={fadeUp} initial="hidden" animate="visible">
-              <ChartContainer
-                title="Row Counts by Table"
-                subtitle="Descending by volume"
-                loading={rowCountsQ.isLoading}
-                empty={!rowChartData.length}
-                stateLabel="Tables"
-                stateStatus="healthy"
-              >
-                <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={rowChartData} layout="vertical" barCategoryGap="20%">
-                    <XAxis
-                      type="number"
-                      tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
-                      axisLine={false}
-                      tickLine={false}
-                      tickFormatter={formatNumber}
-                    />
-                    <YAxis
-                      dataKey="short"
-                      type="category"
-                      tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
-                      axisLine={false}
-                      tickLine={false}
-                      width={110}
-                    />
-                    <Tooltip contentStyle={tooltipStyle} formatter={(value) => [formatNumber(Number(value)), "Rows"]} labelFormatter={(label) => String(label)} />
-                    <Bar dataKey="rows" fill="var(--primary)" radius={[0, 4, 4, 0]} opacity={0.8} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </motion.div>
+          {/* ── Row Count BarChart ── */}
+          <motion.div variants={fadeUp} initial="hidden" animate="visible">
+            <ChartContainer
+              title="Row Counts by Table"
+              subtitle="Descending by volume"
+              loading={rowCountsQ.isLoading}
+              empty={!rowChartData.length}
+              stateLabel="Tables"
+              stateStatus="healthy"
+            >
+              <ResponsiveContainer width="100%" height={340}>
+                <BarChart data={rowChartData} layout="vertical" barCategoryGap="20%">
+                  <XAxis
+                    type="number"
+                    tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={formatNumber}
+                  />
+                  <YAxis
+                    dataKey="short"
+                    type="category"
+                    tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={140}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "var(--hud-bg)",
+                      backdropFilter: "blur(20px)",
+                      border: "1px solid var(--hud-border)",
+                      borderRadius: 12,
+                      fontSize: 12,
+                      boxShadow: "var(--hud-glow)",
+                    }}
+                    formatter={(value) => [formatNumber(Number(value)), "Rows"]}
+                    labelFormatter={(label) => String(label)}
+                  />
+                  <Bar dataKey="rows" fill="var(--primary)" radius={[0, 4, 4, 0]} opacity={0.8} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </motion.div>
 
-            <motion.div variants={fadeUp} initial="hidden" animate="visible">
-              <ChartContainer
-                title="Table Inventory"
-                subtitle="All monitored tables"
-                loading={rowCountsQ.isLoading}
-                empty={!rowCountsQ.data?.length}
-                stateLabel="Inventory"
-                stateStatus="healthy"
-              >
-                <div className="max-h-[280px] overflow-y-auto thin-scrollbar">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-xs sticky top-0 bg-card/80 backdrop-blur-sm">Schema</TableHead>
-                        <TableHead className="text-xs sticky top-0 bg-card/80 backdrop-blur-sm">Table</TableHead>
-                        <TableHead className="text-xs text-right sticky top-0 bg-card/80 backdrop-blur-sm">Rows</TableHead>
-                        <TableHead className="text-xs text-right sticky top-0 bg-card/80 backdrop-blur-sm">Loaded</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {rowCountsQ.data?.map((r) => (
-                        <TableRow key={`${r.schema_name}.${r.table_name}`} className="hover:bg-white/[0.03] transition-colors">
-                          <TableCell className="text-xs text-muted-foreground py-2">
-                            <span className="rounded-sm bg-white/5 border border-white/[0.06] px-1.5 py-0.5 font-mono text-[10px]">
-                              {r.schema_name}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-xs font-medium py-2 tracking-wide">{r.table_name}</TableCell>
-                          <TableCell className="text-xs text-right py-2 font-mono">{formatNumber(r.row_count)}</TableCell>
-                          <TableCell className="text-xs text-right text-muted-foreground py-2 font-mono">
-                            {formatRelativeTime(r.last_loaded_at)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </ChartContainer>
-            </motion.div>
-          </div>
+          {/* ── Table Inventory ── */}
+          <motion.div variants={fadeUp} initial="hidden" animate="visible">
+            <ChartContainer
+              title="Table Inventory"
+              subtitle="All monitored tables"
+              loading={rowCountsQ.isLoading}
+              empty={!rowCountsQ.data?.length}
+              stateLabel="Inventory"
+              stateStatus="healthy"
+            >
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-white/10">
+                    <TableHead className="text-xs">Schema</TableHead>
+                    <TableHead className="text-xs">Table</TableHead>
+                    <TableHead className="text-xs text-right">Row Count</TableHead>
+                    <TableHead className="text-xs text-right">Last Loaded</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rowCountsQ.data?.map((r) => (
+                    <TableRow key={`${r.schema_name}.${r.table_name}`} className="border-white/10 hover:bg-white/5 transition-colors">
+                      <TableCell className="text-xs text-muted-foreground py-3">
+                        <span className="rounded-sm bg-white/5 border border-white/10 px-1.5 py-0.5 font-mono text-[10px]">
+                          {r.schema_name}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-xs font-medium py-3 tracking-wide">{r.table_name}</TableCell>
+                      <TableCell className="text-xs text-right py-3 font-mono">
+                        {formatNumber(r.row_count)}
+                      </TableCell>
+                      <TableCell className="text-xs text-right text-muted-foreground py-3 font-mono">
+                        {formatRelativeTime(r.last_loaded_at)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ChartContainer>
+          </motion.div>
         </div>
       </div>
     </PageTransition>

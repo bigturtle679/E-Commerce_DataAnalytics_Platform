@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface GaugeRingProps {
-  value: number;
+  value: number; // 0-100
   size?: number;
   strokeWidth?: number;
   label?: string;
@@ -31,25 +31,32 @@ export function GaugeRing({
   }, [value]);
 
   const getColor = (v: number) => {
-    if (v >= 95) return "var(--success)";
-    if (v >= 75) return "var(--warning)";
-    return "var(--destructive)";
+    if (v >= 95) return "var(--success)"; // Sage Green
+    if (v >= 75) return "var(--warning)"; // Warm Gold
+    return "var(--destructive)"; // Terracotta
   };
 
   const color = getColor(value);
 
   return (
-    <div className={cn("flex flex-col items-center gap-1.5", className)}>
+    <div className={cn("flex flex-col items-center gap-1", className)}>
       <div className="relative" style={{ width: size, height: size }}>
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
+        <svg
+          width={size}
+          height={size}
+          viewBox={`0 0 ${size} ${size}`}
+          className="-rotate-90"
+        >
+          {/* Background track */}
           <circle
             cx={size / 2}
             cy={size / 2}
             r={radius}
             fill="none"
-            stroke="var(--border)"
+            stroke="var(--m-border-subtle)"
             strokeWidth={strokeWidth}
           />
+          {/* Value arc */}
           <circle
             cx={size / 2}
             cy={size / 2}
@@ -66,14 +73,22 @@ export function GaugeRing({
             }}
           />
         </svg>
+        {/* Center text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-lg font-bold tabular-nums tracking-tight" style={{ color }}>
+          <span
+            className="text-lg font-bold tabular-nums tracking-tight"
+            style={{ color }}
+          >
             {Math.round(animatedValue)}%
           </span>
         </div>
       </div>
-      {label && <span className="text-xs font-medium text-foreground">{label}</span>}
-      {sublabel && <span className="text-[10px] text-muted-foreground">{sublabel}</span>}
+      {label && (
+        <span className="text-xs font-medium text-foreground">{label}</span>
+      )}
+      {sublabel && (
+        <span className="text-[10px] text-muted-foreground">{sublabel}</span>
+      )}
     </div>
   );
 }

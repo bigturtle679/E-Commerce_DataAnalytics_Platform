@@ -10,6 +10,7 @@
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
   
+  /* Horizon Palette Accents mapped to standard tailwind classes */
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
@@ -19,10 +20,6 @@
   --color-warning: var(--warning);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
   
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
@@ -31,265 +28,140 @@
 }
 
 :root {
-  /* ═══════════════════════════════════════
-     LIGHT MODE — Warm Alabaster + Earth
-     ═══════════════════════════════════════ */
-  --background: oklch(0.985 0.002 80);
-  --foreground: oklch(0.18 0.02 240);
+  /* LIGHT MODE (Soft Alabaster + Earthy Accents) */
+  --background: oklch(0.985 0.002 80); /* Warm off-white */
+  --foreground: oklch(0.18 0.02 240); /* Slate text */
   
-  --primary: oklch(0.62 0.18 40);     /* Rich Terracotta */
+  --primary: oklch(0.65 0.16 45); /* Terracotta */
   --primary-foreground: oklch(0.98 0.01 60);
   
   --secondary: oklch(0.94 0.01 80);
   --secondary-foreground: oklch(0.2 0.02 240);
   
-  --accent: oklch(0.92 0.02 80);
-  --accent-foreground: oklch(0.2 0.02 240);
-  
-  --card: oklch(0.98 0.002 80);
-  --card-foreground: oklch(0.18 0.02 240);
-  
   --muted: oklch(0.96 0.01 80);
-  --muted-foreground: oklch(0.50 0.02 240);
+  --muted-foreground: oklch(0.55 0.02 240);
   
-  --destructive: oklch(0.58 0.22 25);  /* True Red — distinct from primary */
-  --success: oklch(0.68 0.14 155);     /* Sage Green */
-  --warning: oklch(0.78 0.15 75);      /* Warm Gold */
+  --destructive: oklch(0.65 0.16 45); /* Terracotta acts as destructive too */
+  --success: oklch(0.7 0.1 160); /* Sage Green */
+  --warning: oklch(0.8 0.15 80); /* Warm Gold */
   
-  --success-alpha: oklch(0.68 0.14 155 / 20%);
-  --warning-alpha: oklch(0.78 0.15 75 / 20%);
-  --destructive-alpha: oklch(0.58 0.22 25 / 20%);
+  --border: oklch(0.92 0.01 80);
+  --radius: 1rem;
   
-  --border: oklch(0.90 0.01 80);
-  --ring: oklch(0.62 0.18 40);
-  --radius: 0.875rem;
-  
-  /* HUD Glass System */
-  --hud-bg: oklch(1 0 0 / 65%);
-  --hud-border: oklch(0 0 0 / 6%);
-  --hud-border-top: oklch(0 0 0 / 10%);
-  --hud-glow: 0 4px 24px oklch(0 0 0 / 5%);
-  --hud-glow-active: 0 8px 32px oklch(0.62 0.18 40 / 10%);
-  
-  /* Legacy compat */
-  --m-surface-2: oklch(0.94 0.01 80);
-  --m-border-subtle: oklch(0.90 0.01 80);
+  /* HUD Glass System (Light) */
+  --hud-bg: oklch(1 0 0 / 60%);
+  --hud-border: oklch(0.8 0.01 240 / 15%);
+  --hud-glow: 0 8px 32px oklch(0 0 0 / 4%);
+  --hud-glow-active: 0 12px 48px oklch(0.65 0.16 45 / 8%); /* Terracotta glow */
   
   /* Charts */
-  --chart-1: oklch(0.62 0.18 40);  /* Terracotta */
-  --chart-2: oklch(0.68 0.14 155); /* Sage */
-  --chart-3: oklch(0.78 0.15 75);  /* Gold */
-  --chart-4: oklch(0.55 0.06 240); /* Slate */
-  --chart-5: oklch(0.82 0.08 40);  /* Sand */
-  
-  /* Gradient Mesh */
-  --mesh-1: oklch(0.62 0.18 40 / 6%);
-  --mesh-2: oklch(0.68 0.14 155 / 4%);
-  --mesh-3: oklch(0.78 0.15 75 / 5%);
+  --chart-1: oklch(0.65 0.16 45); /* Terracotta */
+  --chart-2: oklch(0.7 0.1 160); /* Sage */
+  --chart-3: oklch(0.8 0.15 80); /* Gold */
+  --chart-4: oklch(0.6 0.05 240); /* Slate */
+  --chart-5: oklch(0.85 0.05 45); /* Sand */
 }
 
 .dark {
-  /* ═══════════════════════════════════════
-     DARK MODE — Deep Obsidian + Horizon
-     ═══════════════════════════════════════ */
-  --background: oklch(0.14 0.012 260);
-  --foreground: oklch(0.93 0.005 80);
+  /* DARK MODE (Deep Slate + Horizon Accents) */
+  --background: oklch(0.16 0.01 240); /* Deep Slate */
+  --foreground: oklch(0.95 0.005 80); /* Soft Sand Text */
   
-  --primary: oklch(0.68 0.16 40);     /* Bright Terracotta */
-  --primary-foreground: oklch(0.12 0.01 40);
+  --primary: oklch(0.65 0.16 45); /* Terracotta */
+  --primary-foreground: oklch(0.98 0.01 60);
   
-  --secondary: oklch(0.20 0.015 260);
-  --secondary-foreground: oklch(0.93 0.005 80);
+  --secondary: oklch(0.22 0.015 240);
+  --secondary-foreground: oklch(0.95 0.005 80);
   
-  --accent: oklch(0.22 0.018 260);
-  --accent-foreground: oklch(0.93 0.005 80);
+  --muted: oklch(0.22 0.015 240);
+  --muted-foreground: oklch(0.65 0.01 240);
   
-  --card: oklch(0.18 0.012 260);
-  --card-foreground: oklch(0.93 0.005 80);
-  
-  --muted: oklch(0.22 0.015 260);
-  --muted-foreground: oklch(0.60 0.01 260);
-  
-  --destructive: oklch(0.62 0.22 25);  /* True Red */
-  --success: oklch(0.72 0.14 155);     /* Sage Green */
-  --warning: oklch(0.82 0.15 75);      /* Warm Gold */
-  
-  --success-alpha: oklch(0.72 0.14 155 / 15%);
-  --warning-alpha: oklch(0.82 0.15 75 / 15%);
-  --destructive-alpha: oklch(0.62 0.22 25 / 15%);
+  --destructive: oklch(0.65 0.16 45); /* Terracotta */
+  --success: oklch(0.7 0.1 160); /* Sage Green */
+  --warning: oklch(0.8 0.15 80); /* Warm Gold */
   
   --border: oklch(1 0 0 / 8%);
-  --ring: oklch(0.68 0.16 40);
   
-  /* HUD Glass System */
-  --hud-bg: oklch(0.08 0.01 260 / 60%);
+  /* HUD Glass System (Dark) */
+  --hud-bg: oklch(0 0 0 / 25%);
   --hud-border: oklch(1 0 0 / 6%);
   --hud-border-top: oklch(1 0 0 / 12%);
-  --hud-glow: 0 8px 32px oklch(0 0 0 / 30%), inset 0 1px 0 oklch(1 0 0 / 5%);
-  --hud-glow-active: 0 12px 40px oklch(0.68 0.16 40 / 12%), inset 0 1px 0 oklch(1 0 0 / 8%);
-  
-  /* Legacy compat */
-  --m-surface-2: oklch(0.22 0.015 260);
-  --m-border-subtle: oklch(1 0 0 / 8%);
+  --hud-glow: 0 12px 40px oklch(0 0 0 / 40%), inset 0 1px 0 var(--hud-border-top);
+  --hud-glow-active: 0 12px 48px oklch(0.65 0.16 45 / 15%), inset 0 1px 0 var(--hud-border-top); /* Terracotta glow */
   
   /* Charts */
-  --chart-1: oklch(0.68 0.16 40);
-  --chart-2: oklch(0.72 0.14 155);
-  --chart-3: oklch(0.82 0.15 75);
-  --chart-4: oklch(0.45 0.06 260);
-  --chart-5: oklch(0.75 0.08 40);
-  
-  /* Gradient Mesh */
-  --mesh-1: oklch(0.68 0.16 40 / 4%);
-  --mesh-2: oklch(0.72 0.14 155 / 3%);
-  --mesh-3: oklch(0.82 0.15 75 / 3%);
+  --chart-1: oklch(0.65 0.16 45); /* Terracotta */
+  --chart-2: oklch(0.7 0.1 160); /* Sage */
+  --chart-3: oklch(0.8 0.15 80); /* Gold */
+  --chart-4: oklch(0.4 0.05 240); /* Slate Blue */
+  --chart-5: oklch(0.75 0.08 45); /* Sand */
 }
-
-/* ═══════════════════════════════════════
-   BASE LAYER
-   ═══════════════════════════════════════ */
 
 @layer base {
   * {
-    border-color: var(--border);
-    outline-color: var(--ring);
+    @apply border-white/10 outline-white/20;
   }
   body {
     @apply bg-background text-foreground;
   }
+  /* Remove default lenis scrollbar jumping */
+  html.lenis, html.lenis body {
+    height: auto;
+  }
+  .lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+  }
+  .lenis.lenis-smooth [data-lenis-prevent] {
+    overscroll-behavior: contain;
+  }
+  .lenis.lenis-stopped {
+    overflow: hidden;
+  }
+  .lenis.lenis-smooth iframe {
+    pointer-events: none;
+  }
 }
 
-/* ═══════════════════════════════════════
-   ANIMATED GRADIENT MESH BACKGROUND
-   ═══════════════════════════════════════ */
+/* ═══════════════════════════════════════════════
+   GODMODE UI — Glass HUD System
+   ═══════════════════════════════════════════════ */
 
-.gradient-mesh {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  overflow: hidden;
-  background: var(--background);
-}
-
-.gradient-mesh::before,
-.gradient-mesh::after {
-  content: "";
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(120px);
-  animation: mesh-drift 20s ease-in-out infinite alternate;
-  will-change: transform;
-}
-
-.gradient-mesh::before {
-  width: 50vmax;
-  height: 50vmax;
-  top: -15%;
-  left: -10%;
-  background: radial-gradient(circle, var(--mesh-1), transparent 70%);
-}
-
-.gradient-mesh::after {
-  width: 45vmax;
-  height: 45vmax;
-  bottom: -20%;
-  right: -15%;
-  background: radial-gradient(circle, var(--mesh-2), transparent 70%);
-  animation-delay: -10s;
-  animation-direction: alternate-reverse;
-}
-
-/* Third mesh blob via a child div */
-.gradient-mesh-accent {
-  position: absolute;
-  width: 40vmax;
-  height: 40vmax;
-  top: 30%;
-  left: 40%;
-  border-radius: 50%;
-  filter: blur(100px);
-  background: radial-gradient(circle, var(--mesh-3), transparent 70%);
-  animation: mesh-drift 25s ease-in-out infinite alternate-reverse;
-  animation-delay: -5s;
-  pointer-events: none;
-}
-
-@keyframes mesh-drift {
-  0% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(3%, -5%) scale(1.05); }
-  66% { transform: translate(-4%, 3%) scale(0.95); }
-  100% { transform: translate(2%, -2%) scale(1.02); }
-}
-
-/* ═══════════════════════════════════════
-   HUD GLASS PANEL SYSTEM
-   ═══════════════════════════════════════ */
-
+/* The base HUD Glass Panel */
 .hud-panel {
   background: var(--hud-bg);
-  backdrop-filter: blur(20px) saturate(1.4);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: blur(24px) saturate(1.5);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
   border: 1px solid var(--hud-border);
-  border-top-color: var(--hud-border-top);
-  border-radius: var(--radius);
+  border-radius: 16px;
   box-shadow: var(--hud-glow);
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   overflow: hidden;
 }
 
+/* Hover state for interactive HUD panels */
 .hud-panel-interactive:hover {
   border-color: oklch(1 0 0 / 12%);
   box-shadow: var(--hud-glow-active);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
 
-/* Film grain texture */
+/* Subtle grain overlay for premium texture */
 .hud-grain {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  opacity: 0.03;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 }
 
-/* ═══════════════════════════════════════
-   BENTO CELL — Enhanced glass card
-   ═══════════════════════════════════════ */
-
-.bento-cell {
-  background: var(--hud-bg);
-  backdrop-filter: blur(16px) saturate(1.3);
-  -webkit-backdrop-filter: blur(16px) saturate(1.3);
-  border: 1px solid var(--hud-border);
-  border-top-color: var(--hud-border-top);
-  border-radius: var(--radius);
-  box-shadow: var(--hud-glow);
-  position: relative;
-  overflow: hidden;
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* ═══════════════════════════════════════
-   TELEMETRY BACKGROUND (grid pattern)
-   ═══════════════════════════════════════ */
-
-.m-telemetry-bg {
-  background-image:
-    linear-gradient(var(--border) 1px, transparent 1px),
-    linear-gradient(90deg, var(--border) 1px, transparent 1px);
-  background-size: 20px 20px;
-}
-
-/* ═══════════════════════════════════════
+/* ═══════════════════════════════════════════════
    ANIMATIONS
-   ═══════════════════════════════════════ */
+   ═══════════════════════════════════════════════ */
 
 @keyframes float-slow {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
+  50% { transform: translateY(-8px); }
 }
 .animate-float {
   animation: float-slow 6s ease-in-out infinite;
@@ -297,55 +169,27 @@
 
 @keyframes pulse-ring {
   0% { transform: scale(0.8); opacity: 0.5; }
-  100% { transform: scale(2.2); opacity: 0; }
+  100% { transform: scale(2.4); opacity: 0; }
 }
 .animate-pulse-ring {
   animation: pulse-ring 2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
 }
 
-@keyframes pulse-glow {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-.animate-pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-.animate-shimmer {
-  background: linear-gradient(90deg, transparent, var(--muted), transparent);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
-}
-
 @keyframes scan-line {
   0% { transform: translateY(-100%); opacity: 0; }
-  10% { opacity: 0.6; }
-  90% { opacity: 0.6; }
+  10% { opacity: 0.8; }
+  90% { opacity: 0.8; }
   100% { transform: translateY(100%); opacity: 0; }
 }
 .animate-scan-line {
   animation: scan-line 4s ease-in-out infinite;
 }
 
-@keyframes flow {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(400%); }
-}
-
-@keyframes border-trace {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-/* ═══════════════════════════════════════
+/* ═══════════════════════════════════════════════
    UTILITIES
-   ═══════════════════════════════════════ */
+   ═══════════════════════════════════════════════ */
 
+/* Text gradient using primary Horizon colors */
 .text-gradient-horizon {
   background: linear-gradient(135deg, var(--primary), var(--warning));
   -webkit-background-clip: text;
@@ -353,14 +197,11 @@
   background-clip: text;
 }
 
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-/* Custom scrollbar for data tables */
-.thin-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
-.thin-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.thin-scrollbar::-webkit-scrollbar-thumb {
-  background: var(--muted-foreground);
-  border-radius: 2px;
-  opacity: 0.3;
+/* Hide scrollbar completely but allow scroll */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
