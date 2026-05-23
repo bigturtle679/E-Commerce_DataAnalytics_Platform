@@ -91,7 +91,6 @@ function PipelineNode({
           anchorX="center"
           anchorY="middle"
           fillOpacity={0.8}
-          font="/fonts/GeistMono-Regular.otf" // Optional if removed earlier, we will omit font prop and let R3F fallback to Roboto
         >
           {label}
         </Text>
@@ -225,7 +224,7 @@ function Scene() {
 
 function DataFlowFallback() {
   return (
-    <div className="flex items-center justify-center gap-3 py-6">
+    <div className="absolute inset-0 flex items-center justify-center gap-3 opacity-20 pointer-events-none">
       {STAGES.map((stage, i) => (
         <div key={stage.id} className="flex items-center gap-3">
           <div className="flex flex-col items-center gap-1.5">

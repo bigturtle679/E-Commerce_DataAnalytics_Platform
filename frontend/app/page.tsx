@@ -89,7 +89,7 @@ export default function OverviewPage() {
         <div className="px-12 space-y-32 pb-[30vh]">
           
           {/* Station 1: Core Metrics */}
-          <section className="max-w-6xl mx-auto">
+          <section className="w-full max-w-6xl mx-auto">
             <h3 className="text-sm font-semibold tracking-widest uppercase text-muted-foreground mb-6 ml-2">System Metrics</h3>
             <StaggerContainer className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
               <StaggerItem>
@@ -125,7 +125,7 @@ export default function OverviewPage() {
           </section>
 
           {/* Station 2: Analytics & Live Feed */}
-          <section className="max-w-7xl mx-auto">
+          <section className="w-full max-w-7xl mx-auto">
             <h3 className="text-sm font-semibold tracking-widest uppercase text-muted-foreground mb-6 ml-2">Telemetry Stream</h3>
             <motion.div variants={fadeUp} className="grid grid-cols-1 gap-8 lg:grid-cols-5">
               {/* Revenue trend */}
@@ -200,7 +200,7 @@ export default function OverviewPage() {
           </section>
 
           {/* Station 3: Node Health */}
-          <section className="max-w-5xl mx-auto">
+          <section className="w-full max-w-5xl mx-auto">
             <h3 className="text-sm font-semibold tracking-widest uppercase text-muted-foreground mb-6 ml-2">Node Status</h3>
             <motion.div variants={fadeUp}>
               <ChartContainer

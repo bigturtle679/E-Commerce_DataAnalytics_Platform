@@ -29,12 +29,13 @@ export function Header({ title, description }: HeaderProps) {
   }, []);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 flex h-16 items-center justify-between px-6 pt-2 pb-2">
-      <div className="absolute inset-x-4 inset-y-2 hud-panel pointer-events-none" />
+    <header className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between px-6 pt-2 pb-2">
+      {/* Strong backdrop to prevent 3D scene overlap */}
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-xl border-b border-white/5 pointer-events-none" />
       
       {/* Bottom gradient accent using Horizon palette */}
       <div
-        className="absolute bottom-2 left-8 right-8 h-[1px] opacity-30"
+        className="absolute bottom-0 left-0 right-0 h-[1px] opacity-30"
         style={{
           background: "linear-gradient(90deg, transparent, var(--primary), var(--warning), transparent)",
         }}
