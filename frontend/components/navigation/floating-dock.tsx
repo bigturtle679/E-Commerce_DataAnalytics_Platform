@@ -62,8 +62,8 @@ export function FloatingDock() {
               const isHovered = hoveredIndex === i;
 
               return (
-                <Link key={item.href} href={item.href} passHref legacyBehavior>
-                  <motion.a
+                <Link key={item.href} href={item.href} className="flex">
+                  <motion.div
                     onMouseEnter={() => setHoveredIndex(i)}
                     className="relative flex flex-col items-center justify-center cursor-pointer"
                     animate={{
@@ -109,7 +109,7 @@ export function FloatingDock() {
                         </motion.span>
                       )}
                     </AnimatePresence>
-                  </motion.a>
+                  </motion.div>
                 </Link>
               );
             })}
