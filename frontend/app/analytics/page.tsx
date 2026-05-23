@@ -13,6 +13,10 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from "recharts";
 import { useMemo } from "react";
+import { motion } from "framer-motion";
+import { fadeUp } from "@/lib/motion";
+import { PageTransition } from "@/components/motion/page-transition";
+import { StaggerContainer, StaggerItem } from "@/components/motion/stagger-container";
 
 const CHART_COLORS = [
   "var(--chart-1)", "var(--chart-2)", "var(--chart-3)",
@@ -48,223 +52,259 @@ export default function AnalyticsPage() {
   );
 
   return (
-    <div className="flex flex-col">
-      <Header title="Data Analytics" description="Business metrics and trends" />
+    <PageTransition>
+      <div className="flex flex-col">
+        <Header title="Data Analytics" description="Business metrics and trends" />
 
-      <div className="flex-1 space-y-6 p-6">
-        {/* Summary metrics */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard title="Total Revenue" value={formatCurrency(totalRevenue)} />
-          <MetricCard title="Total Orders" value={formatNumber(totalOrders)} />
-          <MetricCard title="Total Customers" value={formatNumber(latestCustomers)} />
-          <MetricCard title="Avg Order Value" value={formatCurrency(avgOrderValue)} />
-        </div>
+        <div className="flex-1 space-y-6 p-6">
+          {/* Summary metrics */}
+          <StaggerContainer className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StaggerItem>
+              <MetricCard title="Total Revenue" value={formatCurrency(totalRevenue)} />
+            </StaggerItem>
+            <StaggerItem>
+              <MetricCard title="Total Orders" value={formatNumber(totalOrders)} />
+            </StaggerItem>
+            <StaggerItem>
+              <MetricCard title="Total Customers" value={formatNumber(latestCustomers)} />
+            </StaggerItem>
+            <StaggerItem>
+              <MetricCard title="Avg Order Value" value={formatCurrency(avgOrderValue)} />
+            </StaggerItem>
+          </StaggerContainer>
 
-        {/* Revenue + Orders charts */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <ChartContainer
-            title="Revenue Trend"
-            subtitle="Monthly"
-            loading={revenueQ.isLoading}
-            empty={!revenueData.length}
+          {/* Revenue + Orders charts */}
+          <motion.div
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 gap-6 lg:grid-cols-2"
           >
-            <ResponsiveContainer width="100%" height={260}>
-              <AreaChart data={revenueData}>
-                <defs>
-                  <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis
-                  dataKey="period"
-                  tickFormatter={(v) => String(v).slice(5)}
-                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  tickFormatter={(v) => formatCurrency(Number(v))}
-                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={80}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "var(--card)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 8,
-                    fontSize: 12,
-                  }}
-                  formatter={(value) => [formatCurrency(Number(value)), "Revenue"]}
-                />
-                <Area type="monotone" dataKey="total_revenue" stroke="var(--chart-1)" strokeWidth={2} fill="url(#revGrad)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </ChartContainer>
+            <ChartContainer
+              title="Revenue Trend"
+              subtitle="Monthly"
+              loading={revenueQ.isLoading}
+              empty={!revenueData.length}
+              stateLabel="Live"
+              stateStatus="healthy"
+            >
+              <ResponsiveContainer width="100%" height={260}>
+                <AreaChart data={revenueData}>
+                  <defs>
+                    <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis
+                    dataKey="period"
+                    tickFormatter={(v) => String(v).slice(5)}
+                    tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tickFormatter={(v) => formatCurrency(Number(v))}
+                    tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={80}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "var(--card)",
+                      border: "1px solid var(--border)",
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                    formatter={(value) => [formatCurrency(Number(value)), "Revenue"]}
+                  />
+                  <Area type="monotone" dataKey="total_revenue" stroke="var(--chart-1)" strokeWidth={2} fill="url(#revGrad)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </ChartContainer>
 
-          <ChartContainer
-            title="Order Volume"
-            subtitle="Monthly"
-            loading={ordersQ.isLoading}
-            empty={!orderData.length}
-          >
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={orderData}>
-                <XAxis
-                  dataKey="period"
-                  tickFormatter={(v) => String(v).slice(5)}
-                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={formatNumber}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "var(--card)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 8,
-                    fontSize: 12,
-                  }}
-                  formatter={(value, name) => [
-                    formatNumber(Number(value)),
-                    name === "order_count" ? "Orders" : "Items",
-                  ]}
-                />
-                <Bar dataKey="order_count" fill="var(--chart-2)" radius={[3, 3, 0, 0]} name="order_count" />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </div>
+            <ChartContainer
+              title="Order Volume"
+              subtitle="Monthly"
+              loading={ordersQ.isLoading}
+              empty={!orderData.length}
+              stateLabel="Live"
+              stateStatus="healthy"
+            >
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={orderData}>
+                  <XAxis
+                    dataKey="period"
+                    tickFormatter={(v) => String(v).slice(5)}
+                    tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={formatNumber}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "var(--card)",
+                      border: "1px solid var(--border)",
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                    formatter={(value, name) => [
+                      formatNumber(Number(value)),
+                      name === "order_count" ? "Orders" : "Items",
+                    ]}
+                  />
+                  <Bar dataKey="order_count" fill="var(--chart-2)" radius={[3, 3, 0, 0]} name="order_count" />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </motion.div>
 
-        {/* Customers + Geo */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-          <ChartContainer
-            title="Customer Growth"
-            subtitle="Cumulative"
-            className="lg:col-span-3"
-            loading={customersQ.isLoading}
-            empty={!customerData.length}
+          {/* Customers + Geo */}
+          <motion.div
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 gap-6 lg:grid-cols-5"
           >
-            <ResponsiveContainer width="100%" height={260}>
-              <AreaChart data={customerData}>
-                <defs>
-                  <linearGradient id="custGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--chart-3)" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="var(--chart-3)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis
-                  dataKey="period"
-                  tickFormatter={(v) => String(v).slice(5)}
-                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={formatNumber}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "var(--card)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 8,
-                    fontSize: 12,
-                  }}
-                  formatter={(value, name) => [
-                    formatNumber(Number(value)),
-                    name === "total_customers" ? "Total" : "New",
-                  ]}
-                />
-                <Area type="monotone" dataKey="total_customers" stroke="var(--chart-3)" strokeWidth={2} fill="url(#custGrad)" name="total_customers" />
-                <Area type="monotone" dataKey="new_customers" stroke="var(--chart-4)" strokeWidth={1.5} fill="none" strokeDasharray="4 2" name="new_customers" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </ChartContainer>
+            <ChartContainer
+              title="Customer Growth"
+              subtitle="Cumulative"
+              className="lg:col-span-3"
+              loading={customersQ.isLoading}
+              empty={!customerData.length}
+              stateLabel="Live"
+              stateStatus="healthy"
+            >
+              <ResponsiveContainer width="100%" height={260}>
+                <AreaChart data={customerData}>
+                  <defs>
+                    <linearGradient id="custGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--chart-3)" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="var(--chart-3)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis
+                    dataKey="period"
+                    tickFormatter={(v) => String(v).slice(5)}
+                    tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={formatNumber}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "var(--card)",
+                      border: "1px solid var(--border)",
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                    formatter={(value, name) => [
+                      formatNumber(Number(value)),
+                      name === "total_customers" ? "Total" : "New",
+                    ]}
+                  />
+                  <Area type="monotone" dataKey="total_customers" stroke="var(--chart-3)" strokeWidth={2} fill="url(#custGrad)" name="total_customers" />
+                  <Area type="monotone" dataKey="new_customers" stroke="var(--chart-4)" strokeWidth={1.5} fill="none" strokeDasharray="4 2" name="new_customers" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </ChartContainer>
 
-          <ChartContainer
-            title="Geographic Distribution"
-            subtitle="Top states"
-            className="lg:col-span-2"
-            loading={geoQ.isLoading}
-            empty={!geoQ.data?.length}
+            <ChartContainer
+              title="Geographic Distribution"
+              subtitle="Top states"
+              className="lg:col-span-2"
+              loading={geoQ.isLoading}
+              empty={!geoQ.data?.length}
+              stateLabel="Live"
+              stateStatus="healthy"
+            >
+              <ResponsiveContainer width="100%" height={260}>
+                <PieChart>
+                  <Pie
+                    data={geoQ.data?.slice(0, 5) ?? []}
+                    dataKey="customer_count"
+                    nameKey="state"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={85}
+                    innerRadius={50}
+                    strokeWidth={2}
+                    stroke="var(--card)"
+                  >
+                    {geoQ.data?.slice(0, 5).map((_, i) => (
+                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "var(--card)",
+                      border: "1px solid var(--border)",
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                    formatter={(value) => [formatNumber(Number(value)), "Customers"]}
+                  />
+                  <Legend
+                    iconSize={8}
+                    wrapperStyle={{ fontSize: 11 }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </motion.div>
+
+          {/* Top products table */}
+          <motion.div
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
           >
-            <ResponsiveContainer width="100%" height={260}>
-              <PieChart>
-                <Pie
-                  data={geoQ.data?.slice(0, 5) ?? []}
-                  dataKey="customer_count"
-                  nameKey="state"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={85}
-                  innerRadius={50}
-                  strokeWidth={2}
-                  stroke="var(--card)"
-                >
-                  {geoQ.data?.slice(0, 5).map((_, i) => (
-                    <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+            <ChartContainer
+              title="Top Products by Revenue"
+              loading={productsQ.isLoading}
+              empty={!productsQ.data?.length}
+              stateLabel="Live"
+              stateStatus="healthy"
+            >
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs w-8">#</TableHead>
+                    <TableHead className="text-xs">Product</TableHead>
+                    <TableHead className="text-xs">Category</TableHead>
+                    <TableHead className="text-xs text-right">Revenue</TableHead>
+                    <TableHead className="text-xs text-right">Units Sold</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {productsQ.data?.map((p, i) => (
+                    <TableRow key={p.product_id}>
+                      <TableCell className="text-xs text-muted-foreground py-2">{i + 1}</TableCell>
+                      <TableCell className="text-xs font-medium py-2 max-w-[200px] truncate">
+                        {p.product_name ?? p.product_id}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground py-2">{p.category ?? "—"}</TableCell>
+                      <TableCell className="text-xs text-right py-2 font-medium">{formatCurrency(p.total_revenue)}</TableCell>
+                      <TableCell className="text-xs text-right py-2">{formatNumber(p.units_sold)}</TableCell>
+                    </TableRow>
                   ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "var(--card)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 8,
-                    fontSize: 12,
-                  }}
-                  formatter={(value) => [formatNumber(Number(value)), "Customers"]}
-                />
-                <Legend
-                  iconSize={8}
-                  wrapperStyle={{ fontSize: 11 }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </ChartContainer>
+                </TableBody>
+              </Table>
+            </ChartContainer>
+          </motion.div>
         </div>
-
-        {/* Top products table */}
-        <ChartContainer
-          title="Top Products by Revenue"
-          loading={productsQ.isLoading}
-          empty={!productsQ.data?.length}
-        >
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-xs w-8">#</TableHead>
-                <TableHead className="text-xs">Product</TableHead>
-                <TableHead className="text-xs">Category</TableHead>
-                <TableHead className="text-xs text-right">Revenue</TableHead>
-                <TableHead className="text-xs text-right">Units Sold</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {productsQ.data?.map((p, i) => (
-                <TableRow key={p.product_id}>
-                  <TableCell className="text-xs text-muted-foreground py-2">{i + 1}</TableCell>
-                  <TableCell className="text-xs font-medium py-2 max-w-[200px] truncate">
-                    {p.product_name ?? p.product_id}
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground py-2">{p.category ?? "—"}</TableCell>
-                  <TableCell className="text-xs text-right py-2 font-medium">{formatCurrency(p.total_revenue)}</TableCell>
-                  <TableCell className="text-xs text-right py-2">{formatNumber(p.units_sold)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </ChartContainer>
       </div>
-    </div>
+    </PageTransition>
   );
 }

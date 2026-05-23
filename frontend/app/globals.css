@@ -89,44 +89,70 @@
   --sidebar-accent-foreground: oklch(0.25 0.01 250);
   --sidebar-border: oklch(0.91 0.005 250);
   --sidebar-ring: oklch(0.45 0.2 260);
+
+  /* Meridian design tokens — light */
+  --m-glow: oklch(0.45 0.2 260 / 10%);
+  --m-glow-strong: oklch(0.45 0.2 260 / 20%);
+  --m-surface-0: oklch(0.98 0.002 250);
+  --m-surface-1: oklch(1 0 0);
+  --m-surface-2: oklch(0.97 0.003 250);
+  --m-surface-3: oklch(0.95 0.005 250);
+  --m-border-subtle: oklch(0 0 0 / 6%);
+  --m-shadow-sm: 0 1px 2px oklch(0 0 0 / 5%);
+  --m-shadow-md: 0 2px 8px oklch(0 0 0 / 6%), 0 1px 2px oklch(0 0 0 / 4%);
+  --m-shadow-lg: 0 4px 16px oklch(0 0 0 / 8%), 0 2px 4px oklch(0 0 0 / 4%);
+  --m-shadow-glow: 0 0 20px oklch(0.45 0.2 260 / 8%);
 }
 
 .dark {
-  --background: oklch(0.12 0.01 250);
+  --background: oklch(0.1 0.012 260);
   --foreground: oklch(0.93 0.005 250);
-  --card: oklch(0.16 0.012 250);
+  --card: oklch(0.14 0.014 260);
   --card-foreground: oklch(0.93 0.005 250);
-  --popover: oklch(0.16 0.012 250);
+  --popover: oklch(0.14 0.014 260);
   --popover-foreground: oklch(0.93 0.005 250);
   --primary: oklch(0.65 0.22 260);
   --primary-foreground: oklch(0.12 0.01 260);
-  --secondary: oklch(0.22 0.015 250);
+  --secondary: oklch(0.18 0.018 260);
   --secondary-foreground: oklch(0.9 0.005 250);
-  --muted: oklch(0.22 0.015 250);
-  --muted-foreground: oklch(0.6 0.01 250);
-  --accent: oklch(0.22 0.015 250);
+  --muted: oklch(0.18 0.018 260);
+  --muted-foreground: oklch(0.55 0.012 250);
+  --accent: oklch(0.18 0.018 260);
   --accent-foreground: oklch(0.9 0.005 250);
   --destructive: oklch(0.65 0.22 25);
   --success: oklch(0.65 0.2 150);
   --success-foreground: oklch(0.12 0 0);
   --warning: oklch(0.75 0.18 80);
   --warning-foreground: oklch(0.12 0 0);
-  --border: oklch(1 0 0 / 8%);
-  --input: oklch(1 0 0 / 12%);
+  --border: oklch(1 0 0 / 7%);
+  --input: oklch(1 0 0 / 10%);
   --ring: oklch(0.65 0.22 260);
   --chart-1: oklch(0.65 0.22 260);
   --chart-2: oklch(0.7 0.18 170);
   --chart-3: oklch(0.7 0.18 300);
   --chart-4: oklch(0.75 0.18 50);
   --chart-5: oklch(0.6 0.15 200);
-  --sidebar: oklch(0.14 0.012 250);
+  --sidebar: oklch(0.08 0.015 260);
   --sidebar-foreground: oklch(0.93 0.005 250);
   --sidebar-primary: oklch(0.65 0.22 260);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.22 0.015 250);
+  --sidebar-accent: oklch(0.16 0.02 260);
   --sidebar-accent-foreground: oklch(0.9 0.005 250);
-  --sidebar-border: oklch(1 0 0 / 8%);
+  --sidebar-border: oklch(1 0 0 / 6%);
   --sidebar-ring: oklch(0.65 0.22 260);
+
+  /* Meridian design tokens — dark */
+  --m-glow: oklch(0.65 0.22 260 / 12%);
+  --m-glow-strong: oklch(0.65 0.22 260 / 25%);
+  --m-surface-0: oklch(0.08 0.015 260);
+  --m-surface-1: oklch(0.12 0.014 260);
+  --m-surface-2: oklch(0.15 0.016 260);
+  --m-surface-3: oklch(0.18 0.018 260);
+  --m-border-subtle: oklch(1 0 0 / 5%);
+  --m-shadow-sm: 0 1px 3px oklch(0 0 0 / 30%);
+  --m-shadow-md: 0 3px 12px oklch(0 0 0 / 40%), 0 1px 3px oklch(0 0 0 / 20%);
+  --m-shadow-lg: 0 8px 30px oklch(0 0 0 / 50%), 0 2px 6px oklch(0 0 0 / 25%);
+  --m-shadow-glow: 0 0 30px oklch(0.65 0.22 260 / 10%), 0 0 60px oklch(0.65 0.22 260 / 5%);
 }
 
 @layer base {
@@ -141,18 +167,183 @@
   }
 }
 
-/* Activity feed animation */
+/* ═══════════════════════════════════════════════
+   MERIDIAN DESIGN SYSTEM — Animations
+   ═══════════════════════════════════════════════ */
+
+/* Activity feed entrance */
 @keyframes feed-in {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-feed-in {
+  animation: feed-in 0.3s ease-out;
+}
+
+/* Pulse glow — used on live indicators */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.8); }
+}
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Scan line — subtle horizontal sweep */
+@keyframes scan-line {
+  0% { transform: translateY(-100%); opacity: 0; }
+  10% { opacity: 0.6; }
+  90% { opacity: 0.6; }
+  100% { transform: translateY(100%); opacity: 0; }
+}
+.animate-scan-line {
+  animation: scan-line 4s ease-in-out infinite;
+}
+
+/* Fade up — page/card entrance */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up {
+  animation: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Shimmer — skeleton loading effect */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--m-surface-2) 0%,
+    var(--m-surface-3) 50%,
+    var(--m-surface-2) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+/* Gentle float — ambient motion for 3D elements */
+@keyframes gentle-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* Rotate glow — border glow rotation */
+@keyframes rotate-glow {
+  from { --angle: 0deg; }
+  to { --angle: 360deg; }
+}
+
+/* Counter tick — for animated numbers */
+@keyframes counter-tick {
+  from { opacity: 0.6; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Breathing — very subtle scale for live elements */
+@keyframes breathing {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+/* Flow — particle-like horizontal movement */
+@keyframes flow {
+  0% { transform: translateX(-100%); opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translateX(100%); opacity: 0; }
+}
+
+/* ═══════════════════════════════════════════════
+   MERIDIAN DESIGN SYSTEM — Utility Classes
+   ═══════════════════════════════════════════════ */
+
+/* Meridian panel — elevated card with depth */
+.m-panel {
+  background: var(--m-surface-1);
+  border: 1px solid var(--m-border-subtle);
+  border-radius: 12px;
+  box-shadow: var(--m-shadow-md);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
+}
+.m-panel:hover {
+  box-shadow: var(--m-shadow-lg), var(--m-shadow-glow);
+  border-color: oklch(0.65 0.22 260 / 15%);
+}
+
+/* Depth layers — surface elevation */
+.m-depth-0 { background: var(--m-surface-0); }
+.m-depth-1 { background: var(--m-surface-1); box-shadow: var(--m-shadow-sm); }
+.m-depth-2 { background: var(--m-surface-2); box-shadow: var(--m-shadow-md); }
+.m-depth-3 { background: var(--m-surface-3); box-shadow: var(--m-shadow-lg); }
+
+/* Glow border — used on focused/active elements */
+.m-glow-border {
+  box-shadow: var(--m-shadow-glow);
+  border-color: oklch(0.65 0.22 260 / 20%);
+}
+
+/* Gradient accent line — top border accent */
+.m-accent-line::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    oklch(0.65 0.22 260 / 40%) 30%,
+    oklch(0.7 0.18 200 / 40%) 70%,
+    transparent 100%
+  );
+}
+
+/* Telemetry grid — background pattern */
+.m-telemetry-bg {
+  background-image:
+    linear-gradient(var(--m-border-subtle) 1px, transparent 1px),
+    linear-gradient(90deg, var(--m-border-subtle) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Status indicator colors */
+.m-status-healthy { color: var(--success); }
+.m-status-delayed { color: var(--warning); }
+.m-status-stale { color: oklch(0.7 0.2 40); }
+.m-status-degraded { color: var(--destructive); }
+.m-status-offline { color: var(--muted-foreground); }
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-glow,
+  .animate-scan-line,
+  .animate-fade-up,
+  .animate-shimmer,
+  .animate-feed-in {
+    animation: none !important;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  .m-panel:hover {
+    transform: none !important;
   }
 }
 
-.animate-feed-in {
-  animation: feed-in 0.3s ease-out;
+/* Custom scrollbar for the app */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: oklch(0.5 0 0 / 20%);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.5 0 0 / 35%);
 }

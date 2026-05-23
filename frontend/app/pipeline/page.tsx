@@ -10,9 +10,15 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  BarChart, Bar, AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from "recharts";
 import { useMemo } from "react";
+import { motion } from "framer-motion";
+import { fadeUp } from "@/lib/motion";
+import { PageTransition } from "@/components/motion/page-transition";
+import { StaggerContainer, StaggerItem } from "@/components/motion/stagger-container";
+import { GaugeRing } from "@/components/charts/gauge-ring";
+import { ThroughputCounter } from "@/components/system/throughput-counter";
 
 export default function PipelinePage() {
   const runsQ = useQuery({ queryKey: queryKeys.pipelineRuns, queryFn: () => api.getPipelineRuns(100) });
@@ -31,6 +37,11 @@ export default function PipelinePage() {
     [statsQ.data]
   );
 
+  const totalRowsProcessed = useMemo(() =>
+    statsQ.data?.reduce((s, t) => s + t.total_rows_processed, 0) ?? 0,
+    [statsQ.data]
+  );
+
   const durationChartData = useMemo(() =>
     statsQ.data?.map(s => ({
       name: s.task_name.replace(/_/g, " "),
@@ -46,193 +57,278 @@ export default function PipelinePage() {
   );
 
   return (
-    <div className="flex flex-col">
-      <Header title="Pipeline Monitoring" description="DAG runs, task stats, and execution metrics" />
+    <PageTransition>
+      <div className="flex flex-col">
+        <Header title="Pipeline Monitoring" description="DAG runs, task stats, and execution metrics" />
 
-      <div className="flex-1 space-y-6 p-6">
-        {/* Summary metrics */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard
-            title="Success Rate"
-            value={`${successRate}%`}
-            trend={successRate >= 95 ? "up" : successRate >= 80 ? "neutral" : "down"}
-            subtitle={successRate >= 95 ? "Healthy" : "Needs attention"}
-          />
-          <MetricCard
-            title="Total Failures"
-            value={totalFailures}
-            trend={totalFailures === 0 ? "up" : "down"}
-            subtitle="across all tasks"
-          />
-          <MetricCard
-            title="Active Tasks"
-            value={statsQ.data?.length ?? 0}
-            subtitle="monitored"
-          />
-          <MetricCard
-            title="Rows Processed"
-            value={formatNumber(statsQ.data?.reduce((s, t) => s + t.total_rows_processed, 0) ?? 0)}
-            subtitle="total"
-          />
-        </div>
-
-        {/* Charts */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <ChartContainer
-            title="Task Duration"
-            subtitle="Avg vs Max (seconds)"
-            loading={statsQ.isLoading}
-            empty={!durationChartData.length}
+        <div className="flex-1 space-y-6 p-6">
+          {/* Animated throughput counter */}
+          <motion.div
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
           >
-            <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={durationChartData} layout="vertical" barCategoryGap="20%">
-                <XAxis
-                  type="number"
-                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  dataKey="name"
-                  type="category"
-                  tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={100}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "var(--card)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 8,
-                    fontSize: 12,
-                  }}
-                  formatter={(value) => [`${Number(value).toFixed(2)}s`]}
-                />
-                <Bar dataKey="avg" fill="var(--chart-1)" radius={[0, 3, 3, 0]} name="Avg" />
-                <Bar dataKey="max" fill="var(--chart-5)" radius={[0, 3, 3, 0]} name="Max" opacity={0.5} />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartContainer>
+            <ThroughputCounter
+              value={totalRowsProcessed}
+              label="total rows processed"
+              className="mb-2"
+            />
+          </motion.div>
 
-          <ChartContainer
-            title="Throughput Timeline"
-            subtitle="Rows/hour (last 24h)"
-            loading={timelineQ.isLoading}
-            empty={!throughputData.length}
+          {/* Summary metrics with GaugeRing */}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
+            {/* Gauge Ring panel */}
+            <motion.div
+              variants={fadeUp}
+              initial="hidden"
+              animate="visible"
+              className="m-panel flex items-center justify-center rounded-xl p-6"
+            >
+              <GaugeRing
+                value={successRate}
+                size={130}
+                strokeWidth={8}
+                label="Success Rate"
+                sublabel="across all tasks"
+              />
+            </motion.div>
+
+            {/* Remaining 3 metric cards */}
+            <StaggerContainer className="col-span-1 grid grid-cols-1 gap-4 sm:grid-cols-3 lg:col-span-3">
+              <StaggerItem>
+                <MetricCard
+                  title="Total Failures"
+                  value={totalFailures}
+                  trend={totalFailures === 0 ? "up" : "down"}
+                  subtitle="across all tasks"
+                  accentColor={totalFailures === 0 ? "var(--success)" : "var(--destructive)"}
+                />
+              </StaggerItem>
+              <StaggerItem>
+                <MetricCard
+                  title="Active Tasks"
+                  value={statsQ.data?.length ?? 0}
+                  subtitle="monitored"
+                  accentColor="var(--chart-3)"
+                />
+              </StaggerItem>
+              <StaggerItem>
+                <MetricCard
+                  title="Rows Processed"
+                  value={formatNumber(totalRowsProcessed)}
+                  subtitle="total"
+                  accentColor="var(--chart-2)"
+                />
+              </StaggerItem>
+            </StaggerContainer>
+          </div>
+
+          {/* Charts */}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* Task Duration — horizontal BarChart */}
+            <motion.div
+              variants={fadeUp}
+              initial="hidden"
+              animate="visible"
+            >
+              <ChartContainer
+                title="Task Duration"
+                subtitle="Avg vs Max (seconds)"
+                loading={statsQ.isLoading}
+                empty={!durationChartData.length}
+                stateLabel={durationChartData.length ? "Live" : undefined}
+                stateStatus={durationChartData.length ? "healthy" : undefined}
+              >
+                <ResponsiveContainer width="100%" height={240}>
+                  <BarChart data={durationChartData} layout="vertical" barCategoryGap="20%">
+                    <XAxis
+                      type="number"
+                      tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      dataKey="name"
+                      type="category"
+                      tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={100}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "var(--card)",
+                        border: "1px solid var(--border)",
+                        borderRadius: 8,
+                        fontSize: 12,
+                      }}
+                      formatter={(value) => [`${Number(value).toFixed(2)}s`]}
+                    />
+                    <Bar dataKey="avg" fill="var(--chart-1)" radius={[0, 3, 3, 0]} name="Avg" />
+                    <Bar dataKey="max" fill="var(--chart-5)" radius={[0, 3, 3, 0]} name="Max" opacity={0.5} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </motion.div>
+
+            {/* Throughput Timeline — AreaChart with gradient fill */}
+            <motion.div
+              variants={fadeUp}
+              initial="hidden"
+              animate="visible"
+            >
+              <ChartContainer
+                title="Throughput Timeline"
+                subtitle="Rows/hour (last 24h)"
+                loading={timelineQ.isLoading}
+                empty={!throughputData.length}
+                stateLabel={throughputData.length ? "Live" : undefined}
+                stateStatus={throughputData.length ? "healthy" : undefined}
+              >
+                <ResponsiveContainer width="100%" height={240}>
+                  <AreaChart data={throughputData}>
+                    <defs>
+                      <linearGradient id="throughputGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="var(--chart-2)" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="var(--chart-2)" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis
+                      dataKey="hour"
+                      tickFormatter={(v) => new Date(String(v)).toLocaleTimeString("en-US", { hour: "2-digit" })}
+                      tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={formatNumber}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "var(--card)",
+                        border: "1px solid var(--border)",
+                        borderRadius: 8,
+                        fontSize: 12,
+                      }}
+                      formatter={(value) => [formatNumber(Number(value)), "Rows"]}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="rows_processed"
+                      stroke="var(--chart-2)"
+                      strokeWidth={2}
+                      fill="url(#throughputGrad)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </motion.div>
+          </div>
+
+          {/* Tabbed runs / stats tables */}
+          <motion.div
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
           >
-            <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={throughputData}>
-                <XAxis
-                  dataKey="hour"
-                  tickFormatter={(v) => new Date(String(v)).toLocaleTimeString("en-US", { hour: "2-digit" })}
-                  tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={formatNumber}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "var(--card)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 8,
-                    fontSize: 12,
-                  }}
-                  formatter={(value) => [formatNumber(Number(value)), "Rows"]}
-                />
-                <Bar dataKey="rows_processed" fill="var(--chart-2)" radius={[3, 3, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </div>
+            <Tabs defaultValue="runs">
+              <TabsList>
+                <TabsTrigger value="runs" className="text-xs">Recent Runs</TabsTrigger>
+                <TabsTrigger value="stats" className="text-xs">Task Statistics</TabsTrigger>
+              </TabsList>
 
-        {/* Tabbed runs / stats tables */}
-        <Tabs defaultValue="runs">
-          <TabsList>
-            <TabsTrigger value="runs" className="text-xs">Recent Runs</TabsTrigger>
-            <TabsTrigger value="stats" className="text-xs">Task Statistics</TabsTrigger>
-          </TabsList>
+              <TabsContent value="runs" className="mt-4">
+                <ChartContainer
+                  title=""
+                  loading={runsQ.isLoading}
+                  empty={!runsQ.data?.length}
+                  stateLabel={runsQ.data?.length ? "Live" : undefined}
+                  stateStatus={runsQ.data?.length ? "healthy" : undefined}
+                >
+                  <div className="max-h-[400px] overflow-y-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-xs">Pipeline</TableHead>
+                          <TableHead className="text-xs">Task</TableHead>
+                          <TableHead className="text-xs">Status</TableHead>
+                          <TableHead className="text-xs text-right">Rows</TableHead>
+                          <TableHead className="text-xs text-right">Duration</TableHead>
+                          <TableHead className="text-xs text-right">Started</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {runsQ.data?.map((run) => (
+                          <TableRow key={run.id}>
+                            <TableCell className="text-xs text-muted-foreground py-2">{run.pipeline_name}</TableCell>
+                            <TableCell className="text-xs font-medium py-2">{run.task_name}</TableCell>
+                            <TableCell className="py-2"><StatusBadge status={run.status} /></TableCell>
+                            <TableCell className="text-xs text-right py-2">{formatNumber(run.rows_processed)}</TableCell>
+                            <TableCell className="text-xs text-right text-muted-foreground py-2">{formatDuration(run.duration_sec)}</TableCell>
+                            <TableCell className="text-xs text-right text-muted-foreground py-2">{formatDateTime(run.started_at)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </ChartContainer>
+              </TabsContent>
 
-          <TabsContent value="runs" className="mt-4">
-            <ChartContainer title="" loading={runsQ.isLoading} empty={!runsQ.data?.length}>
-              <div className="max-h-[400px] overflow-y-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-xs">Pipeline</TableHead>
-                      <TableHead className="text-xs">Task</TableHead>
-                      <TableHead className="text-xs">Status</TableHead>
-                      <TableHead className="text-xs text-right">Rows</TableHead>
-                      <TableHead className="text-xs text-right">Duration</TableHead>
-                      <TableHead className="text-xs text-right">Started</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {runsQ.data?.map((run) => (
-                      <TableRow key={run.id}>
-                        <TableCell className="text-xs text-muted-foreground py-2">{run.pipeline_name}</TableCell>
-                        <TableCell className="text-xs font-medium py-2">{run.task_name}</TableCell>
-                        <TableCell className="py-2"><StatusBadge status={run.status} /></TableCell>
-                        <TableCell className="text-xs text-right py-2">{formatNumber(run.rows_processed)}</TableCell>
-                        <TableCell className="text-xs text-right text-muted-foreground py-2">{formatDuration(run.duration_sec)}</TableCell>
-                        <TableCell className="text-xs text-right text-muted-foreground py-2">{formatDateTime(run.started_at)}</TableCell>
+              <TabsContent value="stats" className="mt-4">
+                <ChartContainer
+                  title=""
+                  loading={statsQ.isLoading}
+                  empty={!statsQ.data?.length}
+                  stateLabel={statsQ.data?.length ? "Live" : undefined}
+                  stateStatus={statsQ.data?.length ? "healthy" : undefined}
+                >
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-xs">Task</TableHead>
+                        <TableHead className="text-xs text-right">Runs</TableHead>
+                        <TableHead className="text-xs text-right">Success</TableHead>
+                        <TableHead className="text-xs text-right">Failures</TableHead>
+                        <TableHead className="text-xs text-right">Rate</TableHead>
+                        <TableHead className="text-xs text-right">Avg Duration</TableHead>
+                        <TableHead className="text-xs text-right">Total Rows</TableHead>
+                        <TableHead className="text-xs text-right">Last Run</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </ChartContainer>
-          </TabsContent>
-
-          <TabsContent value="stats" className="mt-4">
-            <ChartContainer title="" loading={statsQ.isLoading} empty={!statsQ.data?.length}>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-xs">Task</TableHead>
-                    <TableHead className="text-xs text-right">Runs</TableHead>
-                    <TableHead className="text-xs text-right">Success</TableHead>
-                    <TableHead className="text-xs text-right">Failures</TableHead>
-                    <TableHead className="text-xs text-right">Rate</TableHead>
-                    <TableHead className="text-xs text-right">Avg Duration</TableHead>
-                    <TableHead className="text-xs text-right">Total Rows</TableHead>
-                    <TableHead className="text-xs text-right">Last Run</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {statsQ.data?.map((s) => (
-                    <TableRow key={s.task_name}>
-                      <TableCell className="text-xs font-medium py-2">{s.task_name}</TableCell>
-                      <TableCell className="text-xs text-right py-2">{s.total_runs}</TableCell>
-                      <TableCell className="text-xs text-right py-2 text-success">{s.successes}</TableCell>
-                      <TableCell className="text-xs text-right py-2">
-                        <span className={s.failures > 0 ? "text-destructive font-medium" : "text-muted-foreground"}>
-                          {s.failures}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-xs text-right py-2">
-                        {s.success_rate_pct !== null ? `${s.success_rate_pct}%` : "—"}
-                      </TableCell>
-                      <TableCell className="text-xs text-right text-muted-foreground py-2">
-                        {formatDuration(s.avg_duration_sec)}
-                      </TableCell>
-                      <TableCell className="text-xs text-right py-2">{formatNumber(s.total_rows_processed)}</TableCell>
-                      <TableCell className="text-xs text-right text-muted-foreground py-2">
-                        {formatRelativeTime(s.last_run_at)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </ChartContainer>
-          </TabsContent>
-        </Tabs>
+                    </TableHeader>
+                    <TableBody>
+                      {statsQ.data?.map((s) => (
+                        <TableRow key={s.task_name}>
+                          <TableCell className="text-xs font-medium py-2">{s.task_name}</TableCell>
+                          <TableCell className="text-xs text-right py-2">{s.total_runs}</TableCell>
+                          <TableCell className="text-xs text-right py-2 text-success">{s.successes}</TableCell>
+                          <TableCell className="text-xs text-right py-2">
+                            <span className={s.failures > 0 ? "text-destructive font-medium" : "text-muted-foreground"}>
+                              {s.failures}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-xs text-right py-2">
+                            {s.success_rate_pct !== null ? `${s.success_rate_pct}%` : "—"}
+                          </TableCell>
+                          <TableCell className="text-xs text-right text-muted-foreground py-2">
+                            {formatDuration(s.avg_duration_sec)}
+                          </TableCell>
+                          <TableCell className="text-xs text-right py-2">{formatNumber(s.total_rows_processed)}</TableCell>
+                          <TableCell className="text-xs text-right text-muted-foreground py-2">
+                            {formatRelativeTime(s.last_run_at)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </ChartContainer>
+              </TabsContent>
+            </Tabs>
+          </motion.div>
+        </div>
       </div>
-    </div>
+    </PageTransition>
   );
 }

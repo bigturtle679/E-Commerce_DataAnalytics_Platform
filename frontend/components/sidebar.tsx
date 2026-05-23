@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
+import { LiveIndicator } from "@/components/system/live-indicator";
 
 const NAV_ITEMS = [
   {
@@ -53,18 +55,28 @@ export function Sidebar() {
 
   return (
     <aside className="fixed left-0 top-0 z-30 flex h-full w-56 flex-col border-r border-sidebar-border bg-sidebar">
+      {/* Depth shadow */}
+      <div className="absolute right-0 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-primary/10 to-transparent" />
+
       {/* Logo */}
       <div className="flex h-14 items-center gap-2.5 border-b border-sidebar-border px-5">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-primary-foreground" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <div className="relative flex h-7 w-7 items-center justify-center rounded-md bg-primary">
+          {/* Logo pulse */}
+          <div className="absolute inset-0 rounded-md bg-primary animate-pulse-glow opacity-30" />
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="relative text-primary-foreground" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
           </svg>
         </div>
-        <span className="text-sm font-semibold tracking-tight">Meridian</span>
+        <div className="flex flex-col">
+          <span className="text-sm font-semibold tracking-tight">Meridian</span>
+          <span className="text-[9px] text-muted-foreground/50 uppercase tracking-[0.15em]">
+            Command
+          </span>
+        </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-0.5 px-3 py-4">
+      <nav className="flex-1 space-y-1 px-3 py-4">
         {NAV_ITEMS.map((item) => {
           const active = pathname === item.href;
           return (
@@ -72,14 +84,47 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-[13px] font-medium transition-colors",
+                "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-all duration-200",
                 active
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
-              <span className={cn(active && "text-primary")}>{item.icon}</span>
-              {item.label}
+              {/* Active indicator — animated pill */}
+              {active && (
+                <motion.div
+                  layoutId="sidebar-active"
+                  className="absolute inset-0 rounded-lg"
+                  style={{
+                    background: "var(--m-surface-2)",
+                    boxShadow: "inset 0 0 0 1px var(--m-border-subtle), var(--m-shadow-sm)",
+                  }}
+                  transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
+                />
+              )}
+
+              {/* Hover background */}
+              {!active && (
+                <div className="absolute inset-0 rounded-lg bg-sidebar-accent/0 group-hover:bg-sidebar-accent/60 transition-colors duration-200" />
+              )}
+
+              {/* Icon */}
+              <span className={cn(
+                "relative z-10 transition-colors duration-200",
+                active ? "text-primary" : "group-hover:text-foreground",
+              )}>
+                {item.icon}
+              </span>
+
+              {/* Label */}
+              <span className="relative z-10">{item.label}</span>
+
+              {/* Live dot for active pages */}
+              {active && (
+                <span className="relative z-10 ml-auto">
+                  <LiveIndicator status="healthy" size="sm" />
+                </span>
+              )}
             </Link>
           );
         })}
@@ -87,8 +132,13 @@ export function Sidebar() {
 
       {/* Footer */}
       <div className="border-t border-sidebar-border px-5 py-3">
-        <p className="text-[11px] text-muted-foreground">Meridian</p>
-        <p className="text-[10px] text-muted-foreground/60">Data Platform v1.0</p>
+        <div className="flex items-center gap-2">
+          <LiveIndicator status="healthy" size="sm" />
+          <div>
+            <p className="text-[11px] text-muted-foreground">Meridian</p>
+            <p className="text-[10px] text-muted-foreground/50">Data Platform v1.0</p>
+          </div>
+        </div>
       </div>
     </aside>
   );

@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { api, queryKeys, PipelineRun } from "@/lib/api";
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { LiveIndicator } from "@/components/system/live-indicator";
+import { motion, AnimatePresence } from "framer-motion";
 
 function formatTime(iso: string | null): string {
   if (!iso) return "--:--";
@@ -15,14 +17,16 @@ function FeedRow({ run, index }: { run: PipelineRun; index: number }) {
   const isSuccess = run.status === "success";
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: -8, filter: "blur(4px)" }}
+      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      transition={{ duration: 0.3, delay: index * 0.03 }}
       className={cn(
-        "flex items-center gap-3 px-3 py-2 rounded-md text-xs font-mono",
-        "transition-all duration-300",
-        index === 0 && "animate-feed-in",
+        "flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-mono",
+        "transition-all duration-200 hover:bg-muted/50",
         isSuccess
-          ? "bg-success/5 border border-success/10"
-          : "bg-destructive/5 border border-destructive/10"
+          ? "border border-emerald-500/10 bg-emerald-500/[0.03]"
+          : "border border-red-500/10 bg-red-500/[0.03]",
       )}
     >
       {/* Timestamp */}
@@ -33,7 +37,7 @@ function FeedRow({ run, index }: { run: PipelineRun; index: number }) {
       {/* Status indicator */}
       <span className={cn(
         "shrink-0 w-1.5 h-1.5 rounded-full",
-        isSuccess ? "bg-success" : "bg-destructive"
+        isSuccess ? "bg-emerald-400" : "bg-red-400",
       )} />
 
       {/* Task name */}
@@ -44,7 +48,7 @@ function FeedRow({ run, index }: { run: PipelineRun; index: number }) {
       {/* Status label */}
       <span className={cn(
         "shrink-0 text-[10px] font-semibold uppercase tracking-wider",
-        isSuccess ? "text-success" : "text-destructive"
+        isSuccess ? "text-emerald-400" : "text-red-400",
       )}>
         {run.status}
       </span>
@@ -55,6 +59,50 @@ function FeedRow({ run, index }: { run: PipelineRun; index: number }) {
           {formatNumber(run.rows_processed)} rows
         </span>
       )}
+    </motion.div>
+  );
+}
+
+/** Ambient telemetry animation when feed is idle */
+function IdleTelemetry() {
+  return (
+    <div className="relative h-[220px] overflow-hidden rounded-lg">
+      {/* Background grid */}
+      <div className="absolute inset-0 m-telemetry-bg opacity-15" />
+
+      {/* Animated scanning line */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div
+          className="absolute left-0 right-0 h-px"
+          style={{
+            background: "linear-gradient(90deg, transparent, var(--primary), transparent)",
+            animation: "scan-line 5s ease-in-out infinite",
+            opacity: 0.2,
+          }}
+        />
+      </div>
+
+      {/* Center message */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+        <LiveIndicator status="healthy" size="md" />
+        <div className="text-center">
+          <p className="text-xs font-medium text-muted-foreground">System Idle</p>
+          <p className="text-[10px] text-muted-foreground/50 mt-1">
+            Monitoring pipeline activity
+          </p>
+        </div>
+        {/* Simulated heartbeat line */}
+        <div className="w-24 h-px relative overflow-hidden">
+          <div
+            className="absolute h-full w-8"
+            style={{
+              background: "linear-gradient(90deg, transparent, var(--primary), transparent)",
+              animation: "flow 3s ease-in-out infinite",
+              opacity: 0.4,
+            }}
+          />
+        </div>
+      </div>
     </div>
   );
 }
@@ -67,18 +115,16 @@ export function ActivityFeed() {
   });
 
   if (!runsQ.data?.length) {
-    return (
-      <div className="flex h-[220px] items-center justify-center text-sm text-muted-foreground">
-        No pipeline activity
-      </div>
-    );
+    return <IdleTelemetry />;
   }
 
   return (
     <div className="space-y-1 max-h-[220px] overflow-y-auto pr-1">
-      {runsQ.data.map((run, i) => (
-        <FeedRow key={run.id} run={run} index={i} />
-      ))}
+      <AnimatePresence mode="popLayout">
+        {runsQ.data.map((run, i) => (
+          <FeedRow key={run.id} run={run} index={i} />
+        ))}
+      </AnimatePresence>
     </div>
   );
 }
