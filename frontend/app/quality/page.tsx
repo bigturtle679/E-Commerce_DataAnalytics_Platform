@@ -19,13 +19,6 @@ import { StaggerContainer, StaggerItem } from "@/components/motion/stagger-conta
 import { GaugeRing } from "@/components/charts/gauge-ring";
 import { LiveIndicator } from "@/components/system/live-indicator";
 
-const STATUS_BORDER: Record<string, string> = {
-  ok: "border-emerald-500/40",
-  warn: "border-amber-500/40",
-  error: "border-red-500/40",
-  unknown: "border-zinc-500/40",
-};
-
 const STATUS_TO_INDICATOR: Record<string, "healthy" | "delayed" | "degraded" | "offline"> = {
   ok: "healthy",
   warn: "delayed",

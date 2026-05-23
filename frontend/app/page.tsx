@@ -11,25 +11,18 @@ import {
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from "recharts";
-import { useMemo, lazy, Suspense } from "react";
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { fadeUp } from "@/lib/motion";
 import { PageTransition } from "@/components/motion/page-transition";
 import { StaggerContainer, StaggerItem } from "@/components/motion/stagger-container";
-import { LiveIndicator } from "@/components/system/live-indicator";
-import { ThroughputCounter } from "@/components/system/throughput-counter";
-import { TelemetryBackground } from "@/components/system/telemetry-background";
 
-// Lazy-load 3D scene for performance
-const DataFlowScene = lazy(() =>
-  import("@/components/three/data-flow-scene").then((m) => ({ default: m.DataFlowScene }))
-);
+import { LiveIndicator } from "@/components/system/live-indicator";
 
 export default function OverviewPage() {
   const healthQ = useQuery({ queryKey: queryKeys.healthStatus, queryFn: api.getHealthStatus });
   const statsQ = useQuery({ queryKey: queryKeys.pipelineStats, queryFn: api.getPipelineStats });
   const revenueQ = useQuery({ queryKey: queryKeys.analyticsRevenue, queryFn: () => api.getRevenue(12) });
-  const qualityQ = useQuery({ queryKey: queryKeys.qualitySummary, queryFn: api.getQualitySummary });
   const freshnessQ = useQuery({ queryKey: queryKeys.healthFreshness, queryFn: api.getHealthFreshness });
 
   // Derived metrics

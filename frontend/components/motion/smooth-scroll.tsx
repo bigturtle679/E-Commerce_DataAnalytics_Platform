@@ -28,7 +28,7 @@ export function SmoothScroll({ children }: { children: React.ReactNode }) {
     requestAnimationFrame(raf);
 
     // Bind lenis scroll events to window so other components (like 3D) can tap into it easily
-    lenis.on("scroll", (e: any) => {
+    lenis.on("scroll", (e: { animatedScroll: number }) => {
       window.dispatchEvent(new CustomEvent("lenis-scroll", { detail: e }));
     });
 

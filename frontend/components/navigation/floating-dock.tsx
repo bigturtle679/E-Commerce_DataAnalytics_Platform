@@ -22,9 +22,9 @@ export function FloatingDock() {
   const [lastScrollY, setLastScrollY] = useState(0);
 
   useEffect(() => {
-    const handleScroll = (e: any) => {
+    const handleScroll = (e: Event) => {
       // e.detail is the lenis event. Alternatively, fallback to window.scrollY
-      const currentScrollY = e.detail ? e.detail.animatedScroll : window.scrollY;
+      const currentScrollY = (e as CustomEvent)?.detail ? (e as CustomEvent).detail.animatedScroll : window.scrollY;
       
       if (currentScrollY > 100 && currentScrollY > lastScrollY) {
         setIsVisible(false);

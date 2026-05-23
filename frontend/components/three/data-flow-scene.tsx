@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useMemo, useState, useEffect } from "react";
+import { useRef, useMemo } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Float, Text, Line } from "@react-three/drei";
 import * as THREE from "three";
@@ -24,7 +24,7 @@ const STAGES = [
 
 function CameraRig() {
   const { camera } = useThree();
-  const targetPosition = useMemo(() => new THREE.Vector3(0, 2, 10), []);
+  const targetPosition = useRef(new THREE.Vector3(0, 2, 10));
   
   useFrame(() => {
     // We map scroll progress (0 to max height) to camera position
@@ -35,12 +35,12 @@ function CameraRig() {
     
     // Base camera starts at [0, 4, 12] looking down at 0,0,0
     // As we scroll, we dive closer to [0, 1, 4]
-    targetPosition.x = THREE.MathUtils.lerp(0, STAGES[2].x, progress * 0.5); // Drift slightly towards center
-    targetPosition.y = THREE.MathUtils.lerp(4, 0.5, progress);
-    targetPosition.z = THREE.MathUtils.lerp(14, 3, progress);
+    targetPosition.current.x = THREE.MathUtils.lerp(0, STAGES[2].x, progress * 0.5); // Drift slightly towards center
+    targetPosition.current.y = THREE.MathUtils.lerp(4, 0.5, progress);
+    targetPosition.current.z = THREE.MathUtils.lerp(14, 3, progress);
 
     // Smoothly interpolate camera to target position
-    camera.position.lerp(targetPosition, 0.05);
+    camera.position.lerp(targetPosition.current, 0.05);
     
     // Always look at the center stage
     camera.lookAt(0, 0, 0);
@@ -109,15 +109,20 @@ function FlowingParticles() {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
 
-  const particles = useMemo(() => {
-    return Array.from({ length: PARTICLE_COUNT }, () => ({
-      t: Math.random(),
-      speed: 0.08 + Math.random() * 0.1,
-      segment: Math.floor(Math.random() * 4),
-      yOffset: (Math.random() - 0.5) * 1.2,
-      zOffset: (Math.random() - 0.5) * 1.2,
-    }));
-  }, []);
+  const particles = useRef(
+    Array.from({ length: PARTICLE_COUNT }, (_, i) => {
+      // Deterministic seeded pseudo-random using index
+      const seed = (i * 9301 + 49297) % 233280;
+      const r = (n: number) => ((seed * (n + 1) * 7919 + 104729) % 233280) / 233280;
+      return {
+        t: r(0),
+        speed: 0.08 + r(1) * 0.1,
+        segment: Math.floor(r(2) * 4),
+        yOffset: (r(3) - 0.5) * 1.2,
+        zOffset: (r(4) - 0.5) * 1.2,
+      };
+    })
+  ).current;
 
   useFrame((_, delta) => {
     if (!meshRef.current) return;

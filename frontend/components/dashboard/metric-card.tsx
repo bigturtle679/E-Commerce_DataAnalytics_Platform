@@ -48,7 +48,6 @@ export function MetricCard({
     setIsHovered(false);
   }
 
-  const trendColor = trend === "up" ? "var(--success)" : trend === "down" ? "var(--destructive)" : undefined;
   const accentLine = accentColor || (trend === "up" ? "var(--success)" : trend === "down" ? "var(--destructive)" : "var(--primary)");
 
   return (
