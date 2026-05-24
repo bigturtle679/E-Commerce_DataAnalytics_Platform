@@ -31,9 +31,22 @@ def get_row_counts():
     results = []
     for schema, table in _MONITORED_TABLES:
         try:
-            rows = execute_query(
-                f"SELECT COUNT(*) AS cnt, MAX(_loaded_at) AS last_loaded " f"FROM {schema}.{table}"
+            # Check if _loaded_at column exists (analytics dim tables don't have it)
+            col_check = execute_query(
+                "SELECT 1 FROM information_schema.columns "
+                "WHERE table_schema = %(schema)s AND table_name = %(table)s "
+                "AND column_name = '_loaded_at'",
+                {"schema": schema, "table": table},
             )
+            if col_check:
+                rows = execute_query(
+                    f"SELECT COUNT(*) AS cnt, MAX(_loaded_at) AS last_loaded "
+                    f"FROM {schema}.{table}"
+                )
+            else:
+                rows = execute_query(
+                    f"SELECT COUNT(*) AS cnt, NULL AS last_loaded " f"FROM {schema}.{table}"
+                )
             results.append(
                 {
                     "schema_name": schema,
@@ -43,26 +56,14 @@ def get_row_counts():
                 }
             )
         except Exception:
-            # Table may not have _loaded_at (e.g. dim_dates)
-            try:
-                rows = execute_query(f"SELECT COUNT(*) AS cnt FROM {schema}.{table}")
-                results.append(
-                    {
-                        "schema_name": schema,
-                        "table_name": table,
-                        "row_count": rows[0]["cnt"] if rows else 0,
-                        "last_loaded_at": None,
-                    }
-                )
-            except Exception:
-                results.append(
-                    {
-                        "schema_name": schema,
-                        "table_name": table,
-                        "row_count": 0,
-                        "last_loaded_at": None,
-                    }
-                )
+            results.append(
+                {
+                    "schema_name": schema,
+                    "table_name": table,
+                    "row_count": 0,
+                    "last_loaded_at": None,
+                }
+            )
     return results
 
 

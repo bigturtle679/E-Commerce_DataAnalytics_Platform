@@ -13,7 +13,7 @@ Usage:
 import argparse
 import math
 import random
-import sys
+import threading
 import time
 import uuid
 from datetime import UTC, datetime
@@ -21,8 +21,13 @@ from datetime import UTC, datetime
 import pandas as pd
 from sqlalchemy import text
 
-from config.settings import DATASET_PATH, RAW_SCHEMA, STAGING_SCHEMA, ANALYTICS_SCHEMA
-from ingestion.batch.dtype_specs import CSV_FILE_MAP, DTYPE_SPECS, PRIMARY_KEYS, TIMESTAMP_COLUMNS
+from config.settings import ANALYTICS_SCHEMA, DATASET_PATH, RAW_SCHEMA, STAGING_SCHEMA
+from ingestion.batch.dtype_specs import (
+    CSV_FILE_MAP,
+    DTYPE_SPECS,
+    PRIMARY_KEYS,
+    TIMESTAMP_COLUMNS,
+)
 from ingestion.utils.db import ensure_schemas, get_engine, upsert_dataframe
 from ingestion.utils.logger import get_logger
 from ingestion.utils.metrics import record_metric, track_pipeline
@@ -33,17 +38,17 @@ logger = get_logger("simulation")
 
 # Phase definitions: (phase_name, tables, weight in total timeline)
 PHASES = [
-    ("reference",    ["product_category_translation", "products", "sellers"], 0.08),
-    ("customers",    ["customers"],                                           0.15),
-    ("orders",       ["orders"],                                              0.20),
-    ("order_items",  ["order_items"],                                         0.17),
-    ("payments",     ["order_payments"],                                      0.10),
-    ("reviews",      ["order_reviews"],                                       0.08),
-    ("geolocation",  ["geolocation"],                                         0.07),
-    ("enrichment",   [],                                                      0.05),
-    ("transform_1",  [],                                                      0.03),
-    ("transform_2",  [],                                                      0.04),
-    ("final",        [],                                                      0.03),
+    ("reference", ["product_category_translation", "products", "sellers"], 0.08),
+    ("customers", ["customers"], 0.15),
+    ("orders", ["orders"], 0.20),
+    ("order_items", ["order_items"], 0.17),
+    ("payments", ["order_payments"], 0.10),
+    ("reviews", ["order_reviews"], 0.08),
+    ("geolocation", ["geolocation"], 0.07),
+    ("enrichment", [], 0.05),
+    ("transform_1", [], 0.03),
+    ("transform_2", [], 0.04),
+    ("final", [], 0.03),
 ]
 
 # How many batches to split each table into
@@ -61,12 +66,13 @@ BATCH_COUNTS = {
 
 # Tables that should have a simulated failure on a specific batch
 FAILURE_INJECTION = {
-    "order_items": 2,   # Fail on batch 2 of order_items
-    "order_reviews": 1, # Fail on batch 1 of order_reviews
+    "order_items": 2,  # Fail on batch 2 of order_items
+    "order_reviews": 1,  # Fail on batch 1 of order_reviews
 }
 
 
 # ── Database Reset ─────────────────────────────────────────────────
+
 
 def reset_database():
     """Truncate all raw/staging/analytics tables for a clean simulation start."""
@@ -78,24 +84,40 @@ def reset_database():
     with engine.begin() as conn:
         # Drop analytics tables
         for table in [
-            "fact_order_items", "fact_order_payments",
-            "dim_customers", "dim_products", "dim_sellers",
-            "dim_dates", "dim_geography",
+            "fact_order_items",
+            "fact_order_payments",
+            "dim_customers",
+            "dim_products",
+            "dim_sellers",
+            "dim_dates",
+            "dim_geography",
         ]:
             conn.execute(text(f"DROP TABLE IF EXISTS {ANALYTICS_SCHEMA}.{table} CASCADE"))
 
         # Drop staging views
         for view in [
-            "stg_orders_batch", "stg_order_items_batch", "stg_customers_batch",
-            "stg_products_batch", "stg_sellers_batch", "stg_payments_batch",
-            "stg_reviews_batch", "stg_cep_enrichment", "stg_fx_rates",
+            "stg_orders_batch",
+            "stg_order_items_batch",
+            "stg_customers_batch",
+            "stg_products_batch",
+            "stg_sellers_batch",
+            "stg_payments_batch",
+            "stg_reviews_batch",
+            "stg_cep_enrichment",
+            "stg_fx_rates",
         ]:
             conn.execute(text(f"DROP VIEW IF EXISTS {STAGING_SCHEMA}.{view} CASCADE"))
 
         # Truncate raw tables (keep structure, clear data)
         for table in [
-            "orders", "order_items", "customers", "products", "sellers",
-            "order_payments", "order_reviews", "geolocation",
+            "orders",
+            "order_items",
+            "customers",
+            "products",
+            "sellers",
+            "order_payments",
+            "order_reviews",
+            "geolocation",
             "product_category_translation",
         ]:
             try:
@@ -124,6 +146,7 @@ def reset_database():
 
 
 # ── CSV Loading Helpers ────────────────────────────────────────────
+
 
 def load_csv(table_name: str) -> pd.DataFrame:
     """Read a CSV file for the given table with proper dtypes."""
@@ -180,6 +203,7 @@ def ingest_batch(
 
 # ── Transform Runner ───────────────────────────────────────────────
 
+
 def run_transforms(label: str):
     """Run staging views + analytics tables, recording metrics."""
     from scripts.materialize_models import run
@@ -193,6 +217,7 @@ def run_transforms(label: str):
 
 # ── API Enrichment ─────────────────────────────────────────────────
 
+
 def run_enrichment_phase():
     """Run API enrichment (ViaCEP + FX rates) with real HTTP calls."""
     logger.info("[API] Starting API enrichment phase...")
@@ -200,20 +225,20 @@ def run_enrichment_phase():
     # FX rates (fast -- single HTTP call)
     try:
         from ingestion.api.fx_client import run_fx_enrichment
+
         fx_count = run_fx_enrichment()
         logger.info(f"[OK] FX enrichment: {fx_count} rates fetched")
     except Exception as e:
         logger.warning(f"[WARN] FX enrichment skipped: {e}")
 
     # ViaCEP (limit to 10 CEPs for simulation speed -- ~2 seconds)
-    # Uses a thread with timeout to prevent API stalls from blocking the simulation
-    import threading
-
-    cep_result = {"count": 0, "error": None}
+    # Uses a thread with timeout to prevent API stalls from blocking simulation
+    cep_result: dict = {"count": 0, "error": None}
 
     def _run_cep():
         try:
             from ingestion.api.viacep_client import enrich_ceps
+
             with track_pipeline("simulation", "viacep_enrichment") as ctx:
                 cep_count = enrich_ceps(limit=10)
                 ctx["rows_processed"] = cep_count
@@ -227,7 +252,6 @@ def run_enrichment_phase():
 
     if cep_thread.is_alive():
         logger.warning("[WARN] CEP enrichment timed out after 60s -- continuing simulation")
-        # Record a timeout metric
         record_metric(
             pipeline_name="simulation",
             task_name="viacep_enrichment_timeout",
@@ -246,6 +270,7 @@ def run_enrichment_phase():
 
 # ── Main Simulation ───────────────────────────────────────────────
 
+
 def simulate(duration_minutes: float = 20.0):
     """Run the full pipeline simulation over the specified duration."""
     total_seconds = duration_minutes * 60
@@ -253,7 +278,7 @@ def simulate(duration_minutes: float = 20.0):
 
     print()
     print("=" * 60)
-    print(f"  >> MERIDIAN PIPELINE SIMULATION")
+    print("  >> MERIDIAN PIPELINE SIMULATION")
     print(f"  Duration: {duration_minutes:.0f} minutes ({total_seconds:.0f}s)")
     print(f"  Started:  {datetime.now().strftime('%H:%M:%S')}")
     print("=" * 60)
@@ -284,17 +309,12 @@ def simulate(duration_minutes: float = 20.0):
             logger.warning(f"[WARN] {e}")
 
     # Calculate total number of ingestion batches
-    total_batches = sum(
-        BATCH_COUNTS.get(t, 1) for t in csv_data
-    )
+    total_batches = sum(BATCH_COUNTS.get(t, 1) for t in csv_data)
     # Time per batch (with some buffer for transforms + enrichment)
     ingestion_fraction = 0.75  # 75% of time for ingestion, 25% for transforms/enrichment
     seconds_per_batch = (total_seconds * ingestion_fraction) / max(total_batches, 1)
 
-    logger.info(
-        f"Schedule: {total_batches} batches, "
-        f"~{seconds_per_batch:.1f}s between batches"
-    )
+    logger.info(f"Schedule: {total_batches} batches, " f"~{seconds_per_batch:.1f}s between batches")
 
     # ── Step 3: Execute phases ─────────────────────────────────
     batch_global = 0
@@ -308,8 +328,21 @@ def simulate(duration_minutes: float = 20.0):
         df = csv_data[table_name]
         count = ingest_batch(df, table_name, 1, 1, batch_id)
         batch_global += 1
-        log_progress(table_name, count, 1, 1, batch_global, total_batches, start_time, total_seconds)
+        log_progress(
+            table_name,
+            count,
+            1,
+            1,
+            batch_global,
+            total_batches,
+            start_time,
+            total_seconds,
+        )
         wait_between_batches(seconds_per_batch * 0.5)  # Fast for small tables
+
+    # Run transforms after reference data so analytics tables exist early
+    logger.info("[TRANSFORM] Building initial analytics tables...")
+    run_transforms("after_reference")
 
     # --- Phase 2: Core transactional data (interleaved) ---
     phase_header("Phase 2: Core Data (Customers + Orders + Items)", start_time, total_seconds)
@@ -338,26 +371,42 @@ def simulate(duration_minutes: float = 20.0):
             batch_num = i + 1
             n_total = len(batches)
             should_fail = (
-                table_name in FAILURE_INJECTION
-                and batch_num == FAILURE_INJECTION[table_name]
+                table_name in FAILURE_INJECTION and batch_num == FAILURE_INJECTION[table_name]
             )
 
             # If failure, attempt fails first, then retry succeeds
             if should_fail:
                 try:
                     ingest_batch(
-                        batches[i], table_name, batch_num, n_total,
-                        batch_id, simulate_failure=True,
+                        batches[i],
+                        table_name,
+                        batch_num,
+                        n_total,
+                        batch_id,
+                        simulate_failure=True,
                     )
                 except RuntimeError:
                     logger.info(f"[RETRY] Retrying {table_name} batch {batch_num}...")
                     wait_between_batches(2)  # Brief retry delay
 
             count = ingest_batch(
-                batches[i], table_name, batch_num, n_total, batch_id,
+                batches[i],
+                table_name,
+                batch_num,
+                n_total,
+                batch_id,
             )
             batch_global += 1
-            log_progress(table_name, count, batch_num, n_total, batch_global, total_batches, start_time, total_seconds)
+            log_progress(
+                table_name,
+                count,
+                batch_num,
+                n_total,
+                batch_global,
+                total_batches,
+                start_time,
+                total_seconds,
+            )
             wait_between_batches(seconds_per_batch)
 
     # --- Phase 3: Supporting data ---
@@ -372,26 +421,50 @@ def simulate(duration_minutes: float = 20.0):
         for i, batch_df in enumerate(batches):
             batch_num = i + 1
             should_fail = (
-                table_name in FAILURE_INJECTION
-                and batch_num == FAILURE_INJECTION[table_name]
+                table_name in FAILURE_INJECTION and batch_num == FAILURE_INJECTION[table_name]
             )
 
             if should_fail:
                 try:
                     ingest_batch(
-                        batch_df, table_name, batch_num, n_batches,
-                        batch_id, simulate_failure=True,
+                        batch_df,
+                        table_name,
+                        batch_num,
+                        n_batches,
+                        batch_id,
+                        simulate_failure=True,
                     )
                 except RuntimeError:
                     logger.info(f"[RETRY] Retrying {table_name} batch {batch_num}...")
                     wait_between_batches(2)
 
             count = ingest_batch(
-                batch_df, table_name, batch_num, n_batches, batch_id,
+                batch_df,
+                table_name,
+                batch_num,
+                n_batches,
+                batch_id,
             )
             batch_global += 1
-            log_progress(table_name, count, batch_num, n_batches, batch_global, total_batches, start_time, total_seconds)
+            log_progress(
+                table_name,
+                count,
+                batch_num,
+                n_batches,
+                batch_global,
+                total_batches,
+                start_time,
+                total_seconds,
+            )
             wait_between_batches(seconds_per_batch)
+
+    # --- Incremental transform after core + supporting data ---
+    phase_header(
+        "Phase 3b: Incremental Transform (update analytics)",
+        start_time,
+        total_seconds,
+    )
+    run_transforms("after_core_data")
 
     # --- Phase 4: First transform ---
     phase_header("Phase 4: Staging + Analytics (First Build)", start_time, total_seconds)
@@ -431,7 +504,7 @@ def simulate(duration_minutes: float = 20.0):
 
     print()
     print("=" * 60)
-    print(f"  [DONE] SIMULATION COMPLETE")
+    print("  [DONE] SIMULATION COMPLETE")
     print(f"  Duration:   {total_elapsed / 60:.1f} minutes")
     print(f"  Total rows: {total_rows:,}")
     print(f"  Batches:    {batch_global}")
@@ -443,10 +516,11 @@ def simulate(duration_minutes: float = 20.0):
 
 # ── Utility Functions ──────────────────────────────────────────────
 
+
 def split_dataframe(df: pd.DataFrame, n: int) -> list[pd.DataFrame]:
     """Split a DataFrame into n roughly equal chunks."""
     chunk_size = math.ceil(len(df) / n)
-    return [df.iloc[i * chunk_size:(i + 1) * chunk_size] for i in range(n)]
+    return [df.iloc[i * chunk_size : (i + 1) * chunk_size] for i in range(n)]
 
 
 def wait_between_batches(seconds: float):
@@ -463,14 +537,21 @@ def phase_header(title: str, start_time: float, total_seconds: float):
     print()
     print(f"  {'-' * 50}")
     print(f"  >> {title}")
-    print(f"    [{pct:5.1f}%] {elapsed / 60:.1f}m elapsed / {(total_seconds - elapsed) / 60:.1f}m remaining")
+    print(
+        f"    [{pct:5.1f}%] {elapsed / 60:.1f}m elapsed / {(total_seconds - elapsed) / 60:.1f}m remaining"
+    )
     print(f"  {'-' * 50}")
 
 
 def log_progress(
-    table: str, count: int, batch: int, total: int,
-    global_batch: int, global_total: int,
-    start_time: float, total_seconds: float,
+    table: str,
+    count: int,
+    batch: int,
+    total: int,
+    global_batch: int,
+    global_total: int,
+    start_time: float,
+    total_seconds: float,
 ):
     """Log a batch completion with progress bar."""
     elapsed = time.monotonic() - start_time
@@ -487,16 +568,20 @@ def log_progress(
 
 # ── Entry Point ────────────────────────────────────────────────────
 
+
 def main():
     parser = argparse.ArgumentParser(
         description="Run a live pipeline simulation for the Meridian dashboard.",
     )
     parser.add_argument(
-        "--duration", type=float, default=20.0,
+        "--duration",
+        type=float,
+        default=20.0,
         help="Simulation duration in minutes (default: 20)",
     )
     parser.add_argument(
-        "--fast", action="store_true",
+        "--fast",
+        action="store_true",
         help="Quick 5-minute demo mode",
     )
     args = parser.parse_args()
