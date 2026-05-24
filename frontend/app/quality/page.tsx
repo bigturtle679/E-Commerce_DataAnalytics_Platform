@@ -18,6 +18,7 @@ import { PageTransition } from "@/components/motion/page-transition";
 import { StaggerContainer, StaggerItem } from "@/components/motion/stagger-container";
 import { GaugeRing } from "@/components/charts/gauge-ring";
 import { LiveIndicator } from "@/components/system/live-indicator";
+import { ErrorBanner } from "@/components/system/error-banner";
 
 const STATUS_TO_INDICATOR: Record<string, "healthy" | "delayed" | "degraded" | "offline"> = {
   ok: "healthy",
@@ -55,12 +56,22 @@ export default function QualityPage() {
     [rowCountsQ.data]
   );
 
+  const hasAnyError = summaryQ.isError || rowCountsQ.isError || freshnessQ.isError;
+
   return (
     <PageTransition>
       <div className="flex flex-col min-h-[200vh] pt-[30vh]">
         <Header title="Data Quality Matrix" description="Freshness, row counts, and pipeline integrity" />
 
         <div className="flex-1 space-y-32 px-4 sm:px-8 lg:px-12 pb-[20vh] max-w-7xl mx-auto w-full">
+          {/* Error banner */}
+          {hasAnyError && (
+            <ErrorBanner
+              isError={hasAnyError}
+              failureCount={Math.max(summaryQ.failureCount, rowCountsQ.failureCount, freshnessQ.failureCount)}
+              isFetching={summaryQ.isFetching || rowCountsQ.isFetching || freshnessQ.isFetching}
+            />
+          )}
           {/* ── Hero Section: Gauge + Metric Cards ── */}
           <StaggerContainer className="grid grid-cols-1 gap-8 lg:grid-cols-[auto_1fr]">
             {/* Gauge Ring */}
@@ -108,9 +119,11 @@ export default function QualityPage() {
               subtitle="Live status of each data source"
               loading={freshnessQ.isLoading}
               empty={!freshnessQ.data?.length}
+              error={freshnessQ.isError}
+              errorMessage="Freshness data unavailable"
               stateLabel="Sources"
               stateStatus={
-                staleSources > 0 ? "degraded" : "healthy"
+                freshnessQ.isError ? "offline" : staleSources > 0 ? "degraded" : "healthy"
               }
             >
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
@@ -155,8 +168,10 @@ export default function QualityPage() {
               subtitle="Descending by volume"
               loading={rowCountsQ.isLoading}
               empty={!rowChartData.length}
+              error={rowCountsQ.isError}
+              errorMessage="Row count data unavailable"
               stateLabel="Tables"
-              stateStatus="healthy"
+              stateStatus={rowCountsQ.isError ? "offline" : "healthy"}
             >
               <ResponsiveContainer width="100%" height={340}>
                 <BarChart data={rowChartData} layout="vertical" barCategoryGap="20%">
@@ -200,8 +215,10 @@ export default function QualityPage() {
               subtitle="All monitored tables"
               loading={rowCountsQ.isLoading}
               empty={!rowCountsQ.data?.length}
+              error={rowCountsQ.isError}
+              errorMessage="Inventory data unavailable"
               stateLabel="Inventory"
-              stateStatus="healthy"
+              stateStatus={rowCountsQ.isError ? "offline" : "healthy"}
             >
               <Table>
                 <TableHeader>

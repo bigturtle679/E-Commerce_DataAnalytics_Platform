@@ -16,9 +16,6 @@ _MONITORED_TABLES = [
     ("raw", "sellers"),
     ("raw", "order_payments"),
     ("raw", "order_reviews"),
-    ("raw", "api_products"),
-    ("raw", "api_users"),
-    ("raw", "api_carts"),
     ("analytics", "dim_customers"),
     ("analytics", "dim_products"),
     ("analytics", "dim_sellers"),
@@ -121,9 +118,6 @@ def get_freshness_details():
         "sellers",
         "order_payments",
         "order_reviews",
-        "api_products",
-        "api_users",
-        "api_carts",
     ]
     for table in raw_tables:
         try:

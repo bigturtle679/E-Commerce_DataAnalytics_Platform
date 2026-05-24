@@ -3,6 +3,8 @@
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LiveIndicator } from "@/components/system/live-indicator";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { api, queryKeys } from "@/lib/api";
 
 interface HeaderProps {
   title: string;
@@ -11,6 +13,27 @@ interface HeaderProps {
 
 export function Header({ title, description }: HeaderProps) {
   const [time, setTime] = useState<string>("");
+
+  // Live API health check — replaces hardcoded "Operational"
+  const pingQ = useQuery({
+    queryKey: queryKeys.healthPing,
+    queryFn: api.getHealthPing,
+    refetchInterval: 15_000, // Check every 15s
+    retry: 1,
+  });
+
+  const isOnline = pingQ.data?.status === "ok";
+  const isLoading = pingQ.isLoading;
+  const apiStatus: "healthy" | "delayed" | "offline" = isLoading
+    ? "delayed"
+    : isOnline
+      ? "healthy"
+      : "offline";
+  const statusLabel = isLoading
+    ? "Connecting"
+    : isOnline
+      ? "Operational"
+      : "Offline";
 
   useEffect(() => {
     function update() {
@@ -51,11 +74,11 @@ export function Header({ title, description }: HeaderProps) {
       </div>
 
       <div className="relative z-10 flex items-center gap-6 pr-6">
-        {/* System status */}
+        {/* System status — live from /api/health/ping */}
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/5 backdrop-blur-md">
-          <LiveIndicator status="healthy" size="sm" />
+          <LiveIndicator status={apiStatus} size="sm" />
           <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-[0.2em]">
-            Operational
+            {statusLabel}
           </span>
         </div>
 

@@ -16,8 +16,9 @@ import { motion } from "framer-motion";
 import { fadeUp } from "@/lib/motion";
 import { PageTransition } from "@/components/motion/page-transition";
 import { StaggerContainer, StaggerItem } from "@/components/motion/stagger-container";
-
 import { LiveIndicator } from "@/components/system/live-indicator";
+import { ErrorBanner } from "@/components/system/error-banner";
+import { deriveDataState, DATA_STATE_MAP } from "@/lib/data-states";
 
 export default function OverviewPage() {
   const healthQ = useQuery({ queryKey: queryKeys.healthStatus, queryFn: api.getHealthStatus });
@@ -55,12 +56,33 @@ export default function OverviewPage() {
     [freshnessQ.data]
   );
 
+  // Derive live data state for revenue chart
+  const revenueState = deriveDataState(
+    revenueQ.isLoading, revenueQ.isError, revenueQ.isFetching,
+    revenueQ.dataUpdatedAt, revenueQ.failureCount,
+  );
+  const revenueStateConfig = DATA_STATE_MAP[revenueState];
+  const revenueStatusIcon = revenueStateConfig.icon === "live" ? "healthy" as const : revenueStateConfig.icon;
+
+  // Combined error state for the top banner
+  const hasAnyError = healthQ.isError || statsQ.isError || revenueQ.isError || freshnessQ.isError;
+
   return (
     <div className="flex flex-col min-h-[300vh]">
       <Header title="Meridian Spatial" description="Overview & Telemetry" />
 
       {/* Scrolling Content over the 3D scene */}
       <PageTransition className="relative z-10 flex flex-col pt-[50vh]">
+        {/* API error banner */}
+        {hasAnyError && (
+          <div className="px-4 sm:px-8 lg:px-12 mb-4">
+            <ErrorBanner
+              isError={hasAnyError}
+              failureCount={Math.max(healthQ.failureCount, statsQ.failureCount, revenueQ.failureCount)}
+              isFetching={healthQ.isFetching || statsQ.isFetching || revenueQ.isFetching}
+            />
+          </div>
+        )}
         
         {/* Scrollytelling Spacer - lets the user admire the 3D scene first */}
         <div className="flex flex-col items-center justify-center pb-[20vh]">
@@ -128,8 +150,10 @@ export default function OverviewPage() {
                 className="lg:col-span-3"
                 loading={revenueQ.isLoading}
                 empty={!revenueChartData.length}
-                stateLabel="Live"
-                stateStatus="healthy"
+                error={revenueQ.isError}
+                errorMessage="Revenue data unavailable"
+                stateLabel={revenueStateConfig.label}
+                stateStatus={revenueStatusIcon}
               >
                 <ResponsiveContainer width="100%" height={260}>
                   <AreaChart data={revenueChartData}>
@@ -200,8 +224,10 @@ export default function OverviewPage() {
                 title="Pipeline Health"
                 loading={healthQ.isLoading}
                 empty={!healthQ.data?.length}
+                error={healthQ.isError}
+                errorMessage="Health data unavailable"
                 stateLabel="System Status"
-                stateStatus="healthy"
+                stateStatus={healthQ.isError ? "offline" : "healthy"}
               >
                 <div className="overflow-x-auto">
                   <Table>

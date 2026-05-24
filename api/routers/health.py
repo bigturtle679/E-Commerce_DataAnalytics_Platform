@@ -39,9 +39,6 @@ def get_freshness():
         "sellers",
         "order_payments",
         "order_reviews",
-        "api_products",
-        "api_users",
-        "api_carts",
     ]
     results = []
     for table in tables:

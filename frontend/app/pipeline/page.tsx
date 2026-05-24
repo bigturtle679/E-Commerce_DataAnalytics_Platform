@@ -19,6 +19,7 @@ import { PageTransition } from "@/components/motion/page-transition";
 import { StaggerContainer, StaggerItem } from "@/components/motion/stagger-container";
 import { GaugeRing } from "@/components/charts/gauge-ring";
 import { ThroughputCounter } from "@/components/system/throughput-counter";
+import { ErrorBanner } from "@/components/system/error-banner";
 
 export default function PipelinePage() {
   const runsQ = useQuery({ queryKey: queryKeys.pipelineRuns, queryFn: () => api.getPipelineRuns(100) });
@@ -56,12 +57,22 @@ export default function PipelinePage() {
     [timelineQ.data]
   );
 
+  const hasAnyError = runsQ.isError || statsQ.isError || timelineQ.isError;
+
   return (
     <PageTransition>
       <div className="flex flex-col min-h-[200vh] pt-[30vh]">
         <Header title="Pipeline Topology" description="Execution metrics and DAG runs" />
 
         <div className="flex-1 space-y-24 px-4 sm:px-8 lg:px-12 pb-[20vh] max-w-7xl mx-auto w-full">
+          {/* Error banner */}
+          {hasAnyError && (
+            <ErrorBanner
+              isError={hasAnyError}
+              failureCount={Math.max(runsQ.failureCount, statsQ.failureCount, timelineQ.failureCount)}
+              isFetching={runsQ.isFetching || statsQ.isFetching || timelineQ.isFetching}
+            />
+          )}
           {/* Animated throughput counter */}
           <motion.div
             variants={fadeUp}
@@ -136,8 +147,10 @@ export default function PipelinePage() {
                 subtitle="Avg vs Max (seconds)"
                 loading={statsQ.isLoading}
                 empty={!durationChartData.length}
+                error={statsQ.isError}
+                errorMessage="Task data unavailable"
                 stateLabel={durationChartData.length ? "Live" : undefined}
-                stateStatus={durationChartData.length ? "healthy" : undefined}
+                stateStatus={statsQ.isError ? "offline" : durationChartData.length ? "healthy" : undefined}
               >
                 <ResponsiveContainer width="100%" height={240}>
                   <BarChart data={durationChartData} layout="vertical" barCategoryGap="20%">
@@ -182,8 +195,10 @@ export default function PipelinePage() {
                 subtitle="Rows/hour (last 24h)"
                 loading={timelineQ.isLoading}
                 empty={!throughputData.length}
+                error={timelineQ.isError}
+                errorMessage="Timeline data unavailable"
                 stateLabel={throughputData.length ? "Live" : undefined}
-                stateStatus={throughputData.length ? "healthy" : undefined}
+                stateStatus={timelineQ.isError ? "offline" : throughputData.length ? "healthy" : undefined}
               >
                 <ResponsiveContainer width="100%" height={240}>
                   <AreaChart data={throughputData}>
@@ -245,8 +260,10 @@ export default function PipelinePage() {
                   title=""
                   loading={runsQ.isLoading}
                   empty={!runsQ.data?.length}
+                  error={runsQ.isError}
+                  errorMessage="Pipeline runs unavailable"
                   stateLabel={runsQ.data?.length ? "Live" : undefined}
-                  stateStatus={runsQ.data?.length ? "healthy" : undefined}
+                  stateStatus={runsQ.isError ? "offline" : runsQ.data?.length ? "healthy" : undefined}
                 >
                   <div className="max-h-[400px] overflow-y-auto">
                     <Table>
@@ -282,8 +299,10 @@ export default function PipelinePage() {
                   title=""
                   loading={statsQ.isLoading}
                   empty={!statsQ.data?.length}
+                  error={statsQ.isError}
+                  errorMessage="Task statistics unavailable"
                   stateLabel={statsQ.data?.length ? "Live" : undefined}
-                  stateStatus={statsQ.data?.length ? "healthy" : undefined}
+                  stateStatus={statsQ.isError ? "offline" : statsQ.data?.length ? "healthy" : undefined}
                 >
                   <Table>
                     <TableHeader>

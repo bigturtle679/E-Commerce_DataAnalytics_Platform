@@ -10,6 +10,8 @@ interface ChartContainerProps {
   className?: string;
   loading?: boolean;
   empty?: boolean;
+  error?: boolean;
+  errorMessage?: string;
   stateLabel?: string;
   stateStatus?: "healthy" | "delayed" | "stale" | "degraded" | "offline";
 }
@@ -21,6 +23,8 @@ export function ChartContainer({
   className,
   loading,
   empty,
+  error,
+  errorMessage,
   stateLabel,
   stateStatus,
 }: ChartContainerProps) {
@@ -64,6 +68,8 @@ export function ChartContainer({
       <div className="px-5 pb-5">
         {loading ? (
           <ChartSkeleton />
+        ) : error ? (
+          <ChartError message={errorMessage} />
         ) : empty ? (
           <ChartPlaceholder />
         ) : (
@@ -129,6 +135,26 @@ function ChartPlaceholder() {
         </div>
         <span className="text-[10px] text-muted-foreground/60">
           Data will appear when the pipeline runs
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** Error state — shows when API connection fails */
+function ChartError({ message }: { message?: string }) {
+  return (
+    <div className="relative h-[200px] w-full overflow-hidden rounded-md">
+      <div className="absolute inset-0 m-telemetry-bg opacity-10" />
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+        <div className="flex items-center gap-2">
+          <LiveIndicator status="offline" size="sm" />
+          <span className="text-xs text-destructive/80 font-medium">
+            {message ?? "Connection lost"}
+          </span>
+        </div>
+        <span className="text-[10px] text-muted-foreground/60">
+          Retrying automatically...
         </span>
       </div>
     </div>

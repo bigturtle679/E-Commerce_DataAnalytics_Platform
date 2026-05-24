@@ -17,6 +17,7 @@ import { motion } from "framer-motion";
 import { fadeUp } from "@/lib/motion";
 import { PageTransition } from "@/components/motion/page-transition";
 import { StaggerContainer, StaggerItem } from "@/components/motion/stagger-container";
+import { ErrorBanner } from "@/components/system/error-banner";
 
 const CHART_COLORS = [
   "var(--chart-1)", "var(--chart-2)", "var(--chart-3)",
@@ -51,12 +52,22 @@ export default function AnalyticsPage() {
     [totalRevenue, totalOrders]
   );
 
+  const hasAnyError = revenueQ.isError || productsQ.isError || customersQ.isError || ordersQ.isError || geoQ.isError;
+
   return (
     <PageTransition>
       <div className="flex flex-col min-h-[200vh] pt-[30vh]">
         <Header title="Intelligence Node" description="Business metrics and behavioral trends" />
 
         <div className="flex-1 space-y-32 px-4 sm:px-8 lg:px-12 pb-[20vh] max-w-7xl mx-auto w-full">
+          {/* Error banner */}
+          {hasAnyError && (
+            <ErrorBanner
+              isError={hasAnyError}
+              failureCount={Math.max(revenueQ.failureCount, productsQ.failureCount, customersQ.failureCount, ordersQ.failureCount, geoQ.failureCount)}
+              isFetching={revenueQ.isFetching || productsQ.isFetching || customersQ.isFetching || ordersQ.isFetching || geoQ.isFetching}
+            />
+          )}
           {/* Summary metrics */}
           <StaggerContainer className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <StaggerItem>
@@ -85,8 +96,10 @@ export default function AnalyticsPage() {
               subtitle="Monthly"
               loading={revenueQ.isLoading}
               empty={!revenueData.length}
-              stateLabel="Live"
-              stateStatus="healthy"
+              error={revenueQ.isError}
+              errorMessage="Revenue data unavailable"
+              stateLabel={revenueQ.isError ? "Offline" : "Live"}
+              stateStatus={revenueQ.isError ? "offline" : "healthy"}
             >
               <ResponsiveContainer width="100%" height={300}>
                 <AreaChart data={revenueData}>
@@ -131,8 +144,10 @@ export default function AnalyticsPage() {
               subtitle="Monthly"
               loading={ordersQ.isLoading}
               empty={!orderData.length}
-              stateLabel="Live"
-              stateStatus="healthy"
+              error={ordersQ.isError}
+              errorMessage="Order data unavailable"
+              stateLabel={ordersQ.isError ? "Offline" : "Live"}
+              stateStatus={ordersQ.isError ? "offline" : "healthy"}
             >
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={orderData}>
@@ -182,8 +197,10 @@ export default function AnalyticsPage() {
               className="lg:col-span-3"
               loading={customersQ.isLoading}
               empty={!customerData.length}
-              stateLabel="Live"
-              stateStatus="healthy"
+              error={customersQ.isError}
+              errorMessage="Customer data unavailable"
+              stateLabel={customersQ.isError ? "Offline" : "Live"}
+              stateStatus={customersQ.isError ? "offline" : "healthy"}
             >
               <ResponsiveContainer width="100%" height={300}>
                 <AreaChart data={customerData}>
@@ -232,8 +249,10 @@ export default function AnalyticsPage() {
               className="lg:col-span-2"
               loading={geoQ.isLoading}
               empty={!geoQ.data?.length}
-              stateLabel="Live"
-              stateStatus="healthy"
+              error={geoQ.isError}
+              errorMessage="Geographic data unavailable"
+              stateLabel={geoQ.isError ? "Offline" : "Live"}
+              stateStatus={geoQ.isError ? "offline" : "healthy"}
             >
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
@@ -282,8 +301,10 @@ export default function AnalyticsPage() {
               title="Top Products by Revenue"
               loading={productsQ.isLoading}
               empty={!productsQ.data?.length}
-              stateLabel="Live"
-              stateStatus="healthy"
+              error={productsQ.isError}
+              errorMessage="Product data unavailable"
+              stateLabel={productsQ.isError ? "Offline" : "Live"}
+              stateStatus={productsQ.isError ? "offline" : "healthy"}
             >
               <Table>
                 <TableHeader>
