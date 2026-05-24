@@ -73,7 +73,7 @@ def reset_database():
     engine = get_engine()
     ensure_schemas()
 
-    logger.info("🗑  Resetting database for simulation...")
+    logger.info("[RESET] Resetting database for simulation...")
 
     with engine.begin() as conn:
         # Drop analytics tables
@@ -120,7 +120,7 @@ def reset_database():
         except Exception:
             pass
 
-    logger.info("✓ Database reset complete")
+    logger.info("[OK] Database reset complete")
 
 
 # ── CSV Loading Helpers ────────────────────────────────────────────
@@ -160,7 +160,7 @@ def ingest_batch(
     with track_pipeline("simulation", task_label) as ctx:
         if simulate_failure:
             ctx["rows_processed"] = 0
-            logger.warning(f"💥 Simulated failure on {task_label}")
+            logger.warning(f"[FAIL] Simulated failure on {task_label}")
             raise RuntimeError(
                 f"Simulated transient error: connection timeout on batch "
                 f"{batch_num}/{total_batches} of {table_name}"
@@ -188,32 +188,60 @@ def run_transforms(label: str):
         run()
         ctx["rows_processed"] = 0  # transforms don't count rows directly
 
-    logger.info(f"✓ Transforms complete ({label})")
+    logger.info(f"[OK] Transforms complete ({label})")
 
 
 # ── API Enrichment ─────────────────────────────────────────────────
 
 def run_enrichment_phase():
     """Run API enrichment (ViaCEP + FX rates) with real HTTP calls."""
-    logger.info("🌐 Starting API enrichment phase...")
+    logger.info("[API] Starting API enrichment phase...")
 
-    # FX rates (fast — single HTTP call)
+    # FX rates (fast -- single HTTP call)
     try:
         from ingestion.api.fx_client import run_fx_enrichment
         fx_count = run_fx_enrichment()
-        logger.info(f"✓ FX enrichment: {fx_count} rates fetched")
+        logger.info(f"[OK] FX enrichment: {fx_count} rates fetched")
     except Exception as e:
-        logger.warning(f"⚠ FX enrichment skipped: {e}")
+        logger.warning(f"[WARN] FX enrichment skipped: {e}")
 
-    # ViaCEP (limit to 50 CEPs for simulation speed — ~8 seconds)
-    try:
-        from ingestion.api.viacep_client import enrich_ceps
-        with track_pipeline("simulation", "viacep_enrichment") as ctx:
-            cep_count = enrich_ceps(limit=50)
-            ctx["rows_processed"] = cep_count
-        logger.info(f"✓ CEP enrichment: {cep_count} CEPs fetched")
-    except Exception as e:
-        logger.warning(f"⚠ CEP enrichment skipped: {e}")
+    # ViaCEP (limit to 10 CEPs for simulation speed -- ~2 seconds)
+    # Uses a thread with timeout to prevent API stalls from blocking the simulation
+    import threading
+
+    cep_result = {"count": 0, "error": None}
+
+    def _run_cep():
+        try:
+            from ingestion.api.viacep_client import enrich_ceps
+            with track_pipeline("simulation", "viacep_enrichment") as ctx:
+                cep_count = enrich_ceps(limit=10)
+                ctx["rows_processed"] = cep_count
+            cep_result["count"] = cep_count
+        except Exception as e:
+            cep_result["error"] = str(e)
+
+    cep_thread = threading.Thread(target=_run_cep, daemon=True)
+    cep_thread.start()
+    cep_thread.join(timeout=60)  # Max 60 seconds for CEP enrichment
+
+    if cep_thread.is_alive():
+        logger.warning("[WARN] CEP enrichment timed out after 60s -- continuing simulation")
+        # Record a timeout metric
+        record_metric(
+            pipeline_name="simulation",
+            task_name="viacep_enrichment_timeout",
+            status="failure",
+            rows_processed=0,
+            duration_sec=60.0,
+            error_message="CEP enrichment timed out after 60s",
+            started_at=datetime.now(UTC),
+            completed_at=datetime.now(UTC),
+        )
+    elif cep_result["error"]:
+        logger.warning(f"[WARN] CEP enrichment failed: {cep_result['error']}")
+    else:
+        logger.info(f"[OK] CEP enrichment: {cep_result['count']} CEPs fetched")
 
 
 # ── Main Simulation ───────────────────────────────────────────────
@@ -225,7 +253,7 @@ def simulate(duration_minutes: float = 20.0):
 
     print()
     print("=" * 60)
-    print(f"  🚀 MERIDIAN PIPELINE SIMULATION")
+    print(f"  >> MERIDIAN PIPELINE SIMULATION")
     print(f"  Duration: {duration_minutes:.0f} minutes ({total_seconds:.0f}s)")
     print(f"  Started:  {datetime.now().strftime('%H:%M:%S')}")
     print("=" * 60)
@@ -251,9 +279,9 @@ def simulate(duration_minutes: float = 20.0):
     for table_name in CSV_FILE_MAP:
         try:
             csv_data[table_name] = load_csv(table_name)
-            logger.info(f"📄 Loaded {table_name}: {len(csv_data[table_name])} rows")
+            logger.info(f"[CSV] Loaded {table_name}: {len(csv_data[table_name])} rows")
         except FileNotFoundError as e:
-            logger.warning(f"⚠ {e}")
+            logger.warning(f"[WARN] {e}")
 
     # Calculate total number of ingestion batches
     total_batches = sum(
@@ -322,7 +350,7 @@ def simulate(duration_minutes: float = 20.0):
                         batch_id, simulate_failure=True,
                     )
                 except RuntimeError:
-                    logger.info(f"🔄 Retrying {table_name} batch {batch_num}...")
+                    logger.info(f"[RETRY] Retrying {table_name} batch {batch_num}...")
                     wait_between_batches(2)  # Brief retry delay
 
             count = ingest_batch(
@@ -355,7 +383,7 @@ def simulate(duration_minutes: float = 20.0):
                         batch_id, simulate_failure=True,
                     )
                 except RuntimeError:
-                    logger.info(f"🔄 Retrying {table_name} batch {batch_num}...")
+                    logger.info(f"[RETRY] Retrying {table_name} batch {batch_num}...")
                     wait_between_batches(2)
 
             count = ingest_batch(
@@ -381,7 +409,7 @@ def simulate(duration_minutes: float = 20.0):
     elapsed = time.monotonic() - start_time
     remaining = total_seconds - elapsed
     if remaining > 5:
-        logger.info(f"⏳ Simulation data complete. Holding for {remaining:.0f}s remaining...")
+        logger.info(f"[WAIT] Simulation data complete. Holding for {remaining:.0f}s remaining...")
         # Record periodic "heartbeat" metrics so the dashboard stays animated
         heartbeats = max(1, int(remaining / 30))
         for hb in range(heartbeats):
@@ -403,7 +431,7 @@ def simulate(duration_minutes: float = 20.0):
 
     print()
     print("=" * 60)
-    print(f"  ✅ SIMULATION COMPLETE")
+    print(f"  [DONE] SIMULATION COMPLETE")
     print(f"  Duration:   {total_elapsed / 60:.1f} minutes")
     print(f"  Total rows: {total_rows:,}")
     print(f"  Batches:    {batch_global}")
@@ -433,10 +461,10 @@ def phase_header(title: str, start_time: float, total_seconds: float):
     elapsed = time.monotonic() - start_time
     pct = min(100, (elapsed / total_seconds) * 100)
     print()
-    print(f"  {'─' * 50}")
-    print(f"  ▶ {title}")
+    print(f"  {'-' * 50}")
+    print(f"  >> {title}")
     print(f"    [{pct:5.1f}%] {elapsed / 60:.1f}m elapsed / {(total_seconds - elapsed) / 60:.1f}m remaining")
-    print(f"  {'─' * 50}")
+    print(f"  {'-' * 50}")
 
 
 def log_progress(
@@ -449,7 +477,7 @@ def log_progress(
     pct = min(100, (global_batch / global_total) * 100)
     bar_len = 25
     filled = int(bar_len * pct / 100)
-    bar = "█" * filled + "░" * (bar_len - filled)
+    bar = "#" * filled + "-" * (bar_len - filled)
 
     logger.info(
         f"  [{bar}] {pct:5.1f}% | {table} batch {batch}/{total} "
