@@ -7,7 +7,7 @@
 
 .PHONY: help up down rebuild logs ingest enrich transform test lint format \
         ci check test-unit frontend-check reset-db precommit monitoring \
-        api frontend airflow status clean verify psql shell
+        api frontend airflow status clean verify psql shell simulate simulate-fast
 
 # ── Config ────────────────────────────────────────────────────
 COMPOSE  = docker compose --env-file .env.docker
@@ -35,7 +35,7 @@ help: ## Show this help
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-18s$(NC) %s\n", $$1, $$2}'
 	@echo ""
 	@echo "$(YELLOW)Pipeline (Docker)$(NC)"
-	@grep -E '^(ingest|transform|seed|test):.*?## .*$$' $(MAKEFILE_LIST) | \
+	@grep -E '^(ingest|transform|seed|simulate|simulate-fast|test):.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-18s$(NC) %s\n", $$1, $$2}'
 	@echo ""
 	@echo "$(YELLOW)Operations$(NC)"
@@ -133,6 +133,18 @@ seed: ## Full pipeline: ingest + transform (first-time setup)
 	@$(MAKE) ingest
 	@$(MAKE) transform
 	@echo "$(GREEN)✓ Data pipeline complete. Dashboard is ready.$(NC)"
+
+simulate: ## Run 20-minute live pipeline simulation (drip-feed + API enrichment)
+	@echo "$(CYAN)▸ Starting 20-minute pipeline simulation...$(NC)"
+	@echo "$(YELLOW)  Open http://localhost:3000 to watch the dashboard come alive$(NC)"
+	$(EXEC_API) python -m scripts.simulate_pipeline
+	@echo "$(GREEN)✓ Simulation complete.$(NC)"
+
+simulate-fast: ## Run 5-minute quick pipeline demo
+	@echo "$(CYAN)▸ Starting 5-minute quick simulation...$(NC)"
+	@echo "$(YELLOW)  Open http://localhost:3000 to watch the dashboard come alive$(NC)"
+	$(EXEC_API) python -m scripts.simulate_pipeline --fast
+	@echo "$(GREEN)✓ Simulation complete.$(NC)"
 
 test: ## Run full test suite in Docker
 	@echo "$(CYAN)▸ Running tests in container...$(NC)"
